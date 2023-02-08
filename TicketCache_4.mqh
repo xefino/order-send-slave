@@ -194,7 +194,7 @@ int TicketCache::CopyTo(ulong &dstKeys[], ulong &dstValues[], const int dstStart
             dstStart + index >= ArraySize(dstValues) || index >= count) {
             return index;
          }
-        
+         
          // Otherwise, set the key and value to the associated entry in the cache and
          // update the index
          dstKeys[dstStart + index] = m_entries[i].Key;

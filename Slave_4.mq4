@@ -12,6 +12,7 @@ enum ENUM_ENVIRONMENT {
 // Inputs
 input ENUM_ENVIRONMENT Environment = ENVIRONMENT_PROD;   // Environment
 input ushort Port = 8001;                                // Port
+input string SaveFile = "tickets_cache.txt";             // Save File Name
 input ulong Magic = 0;                                   // Magic Number
 input color Arrow = CLR_NONE;                            // Arrow Color
 input ulong Slippage = 5;                                // Slippage (Pts)
@@ -31,7 +32,7 @@ int OnInit() {
       return INIT_PARAMETERS_INCORRECT;
    }
    
-   Receiver = new OrderDuplicator(url, Port, Magic, Slippage, Arrow);
+   Receiver = new OrderDuplicator(url, Port, Magic, SaveFile, Slippage, Arrow);
    int errCode = GetLastError();
    if (errCode != 0) {
       return errCode;
