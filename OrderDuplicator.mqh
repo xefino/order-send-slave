@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.03"
+#property version   "1.04"
 #property strict
 
 #include "Receiver_4.mqh"
@@ -55,9 +55,10 @@ int OrderDuplicator::DuplicateAll() {
    // Iterate over all the requests we retrieved...
    for (int i = 0; i < ArraySize(requests); i++) {
       TradeRequest request = requests[i];
-   
+         
       // If we already have the key then we have to either update or close the order. Otherwise,
       // we have a new order so send it
+      ResetLastError();
       if (m_cache.ContainsKey(request.Order)) {
          // Order exists already; we need to update or close
       } else {
@@ -69,7 +70,7 @@ int OrderDuplicator::DuplicateAll() {
          if (ticket == -1) {
             int errCode = GetLastError();
             PrintFormat("Failed to copy order for ticket %d, error: %d", request.Order, errCode);
-            return errCode;
+            continue;
          }
          
          // Attempt to map the master order ticket to our slave ticket; if this fails then log
@@ -78,7 +79,7 @@ int OrderDuplicator::DuplicateAll() {
             int errCode = GetLastError();
             PrintFormat("Failed to cache order (master: %d, slave: %d), error: %d",
                request.Order, ticket, errCode);
-            return errCode;   
+            continue;
          }
       }
    }

@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.02"
+#property version   "1.04"
 #property strict
 
 #include <order-send-common-mt4\Primes.mqh>
