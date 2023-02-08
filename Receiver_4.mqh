@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.02"
+#property version   "1.03"
 
 #include <mql5-json/Json.mqh>
 #include <order-send-common-mt4/ServerSocket.mqh>
@@ -95,6 +95,7 @@ bool OrderReceiver::Receive(TradeRequest &requests[]) {
          
          // First, attempt to receive data on the socket
          string result = client.Receive();
+         Print("Result: ", result);
          
          // Next, attempt to split the payload based on our expected payload structure; if this fails then
          // print an error message and return
@@ -108,9 +109,10 @@ bool OrderReceiver::Receive(TradeRequest &requests[]) {
          // Finally, resize the list of requests so it is the same as the size of payloads and then iterate
          // over each request and convert the associated payload from JSON to a trade request; if this fails
          // then print an error message and return
-         ArrayResize(requests, ArraySize(payloads));
+         int numRequests = ArraySize(numRequests);
+         ArrayResize(requests, numRequests + ArraySize(payloads));
          for (int i = 0; i < ArraySize(payloads); i++) {
-            errCode = ConvertFromJSON(payloads[i], requests[i]);
+            errCode = ConvertFromJSON(payloads[i], requests[i + numRequests]);
             if (errCode != 0) {
                PrintFormat("Failed to convert payload %d to JSON, error code: %d", i, errCode);
                return false;

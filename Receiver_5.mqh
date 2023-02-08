@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.02"
+#property version   "1.03"
 
 // OrderReceiver
 // Helper object that can be used to receive trade requests that were dispersed from a master node.
@@ -223,12 +223,19 @@ int ConvertFromJSON(const string json, MqlTradeRequest &request) {
 uint UpdateRegistry(const string addr, const uint port, const bool enable) {
 
    // First, convert the trade request to JSON and write that to our buffer
-   char req[];
-   string json = StringFormat("{\"enabled\":%s,\"port\":%d}", BoolToString(enable), port);
-   int len = StringToCharArray(json, req) - 1;
+   JSONNode *js = new JSONNode();
+   js["enabled"] = enable;
+   js["port"] = (int)port;
+   js["version"] = "MT4";
    
-   // Next, attempt to send the JSON data to our web server; if this fails then return an error
-   Print("Attempting send...");
+   // Next, serialize it into a string, convert it to a character array; then delete the serializer
+   uchar req[];
+   string json = js.Serialize();
+   int len = StringToCharArray(json, req) - 1;
+   delete js;
+   js = NULL;
+   
+   // Now, attempt to send the JSON data to our web server; if this fails then return an error
    char result[];
    string headers;
    int res = WebRequest("POST", addr, "", "", 1000, req, len, result, headers);
@@ -236,14 +243,7 @@ uint UpdateRegistry(const string addr, const uint port, const bool enable) {
       res = GetLastError();
    }
    
-   PrintFormat("Response Code: %d, Headers: %s, Response: %s", res, headers, CharArrayToString(result));
-
    // Finally, return 0 to indicate that all the operations succeeded if we got a 200 response code
    // Otherwise, return the response code we received
    return res == 200 ? 0 : res;
-}
-
-// Converts a Boolean value to a string
-string BoolToString(const bool in) {
-   return in ? "true" : "false";
 }
