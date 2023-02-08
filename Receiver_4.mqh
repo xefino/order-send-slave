@@ -95,7 +95,6 @@ bool OrderReceiver::Receive(TradeRequest &requests[]) {
          
          // First, attempt to receive data on the socket
          string result = client.Receive();
-         Print("Result: ", result);
          
          // Next, attempt to split the payload based on our expected payload structure; if this fails then
          // print an error message and return
