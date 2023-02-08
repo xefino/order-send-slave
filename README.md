@@ -80,3 +80,18 @@ One last thing that needs to be done before running the EA is to ensure that the
 10. Finally, we need to decide on a name for the rule. This guide has named the rule `Slave EA` but you can choose whatever you want for a name, so long as it is memorable to you. You may also add a description for the rule at this time. Once you've done that, click `Finish` and the rule will be complete.
 
 ![Naming Page](https://github.com/xefino/order-send-slave/blob/main/docs/namerule.png)
+
+## Running the Expert
+To run the expert, you open a new chart for any symbol and add the expert to it, by double-clicking on it in the Navigator list or dragging it onto the chart. The expert will be named "Slave_4" or "Slave_5" for MetaTrader 4 and MetaTrader 5, respectively You do not need to run multiple copies of the EA on charts for each symbol which you trade. You should only run one copy of the receiver EA, on any chart. This will attempt to submit a copy of each order it receives from the master EA to the trade server.
+
+## Operation
+In general, the slave expert waits to receive orders from the master expert. The slave EA will then attempt to place the same trade. Transmission is subject to lag but all server resources are located in Singapore in an effort to reduce latency. The time taken to transmit the trade should be no more than three seconds but the actual copy time will also depend on the ability of your broker(s) to handle the copied trade. The data transmitted will depend on the version of MetaTrader you're using and your master and slave must be using the same version of MetaTrader for the transmission to work. Note that if submission of an order fails, for any reason, then the order will not be re-submitted. Further note that the Market Watch must contain all the symbols which are going to be traded. In  addition, if the receiving MT4 account should be in the same currency as the sending account. For example, if the senders’s deposit currency is GBP or JPY, then the receiver's deposit currency must also be GBP or JPY, respectively.
+
+## Handling Disconnects
+The slave expert will listen continuously until it receives order data from the master. Should the connection fail, the error will be logged and the connection will be attempted next tick. Therefore, the slave expert exhibits an ability to recover from network issues quickly. That being said, if network issues are prolonged then the expert may still fail to retrieve order data. In this case, such orders will be ignored.
+
+### MetaTrader 4 Transmission
+Due to limitations of MQL4, the master will be unable to transmit close-by orders as we have no way of retrieving the position-by data from the order at this time. Therefore, we will only be able to handle a subset of potential trade operations.
+
+### MetaTrader 5 Transmission
+In MQL5 we have access to the `MqlTradeRequest` object, which contains all data needed to create an order. This information is serialized directly so the order can be recreated exactly on the slave. Therefore, all order types can be copied.
