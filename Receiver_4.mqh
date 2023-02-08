@@ -109,7 +109,7 @@ bool OrderReceiver::Receive(TradeRequest &requests[]) {
          // Finally, resize the list of requests so it is the same as the size of payloads and then iterate
          // over each request and convert the associated payload from JSON to a trade request; if this fails
          // then print an error message and return
-         int numRequests = ArraySize(numRequests);
+         int numRequests = ArraySize(requests);
          ArrayResize(requests, numRequests + ArraySize(payloads));
          for (int i = 0; i < ArraySize(payloads); i++) {
             errCode = ConvertFromJSON(payloads[i], requests[i + numRequests]);
