@@ -10,12 +10,12 @@ Before running the expert, you must ensure that your instance of MetaTrader 4 is
 1. Open your instance of MetaTrader 4.
 2. Navigate to the top menu bar and click on `Tools`. Then scroll down and click on `Options`:
 
-![Finding the Options Menu](https://github.com/xefino/order-send-master/blob/main/docs/select%20screen%204.png)
+![Finding the Options Menu](https://github.com/xefino/order-send-slave/blob/main/docs/select%20screen%204.png)
  
 3. In the `Options` window, select the `Expert Advisors` pane and ensure that the `Allow automated trading`, `All DLL imports` and `Allow WebRequest for listed URL:` options are selected.
 4. Copy the URL which should be used to register the slave EA. Then, in the list of allowed URLs, click the `+` icon and paste the URL into the resulting text box. Repeat this for the desired receipt URL.
  
-![Updating the allowed URLs](https://github.com/xefino/order-send-master/blob/main/docs/options%20screen%204.png)
+![Updating the allowed URLs](https://github.com/xefino/order-send-slave/blob/main/docs/options%20screen%204.png)
 
  5. Click Ok to save your settings.
 
@@ -25,12 +25,12 @@ Before running the expert, you must ensure that your instance of MetaTrader 5 is
 1. Open your instance of MetaTrader 5.
 2. Navigate to the top menu bar and click on `Tools`. Then scroll down and click on `Options`:
 
-![Finding the Options Menu](https://github.com/xefino/order-send-master/blob/main/docs/select%20screen%205.png)
+![Finding the Options Menu](https://github.com/xefino/order-send-slave/blob/main/docs/select%20screen%205.png)
  
 3. In the `Options` window, select the `Expert Advisors` pane and ensure that the `Allow automated trading` and `Allow WebRequest for listed URL:` options are selected.
 4. Copy the URL which should be used to register the slave EA. Then, in the list of allowed URLs, click the `+` icon and paste the URL into the resulting text box. Repeat this for the desired receipt URL.
  
-![Updating the allowed URLs](https://github.com/xefino/order-send-master/blob/main/docs/options%20screen%205.png)
+![Updating the allowed URLs](https://github.com/xefino/order-send-slave/blob/main/docs/options%20screen%205.png)
 
  5. Click Ok to save your settings.
 
@@ -50,33 +50,33 @@ One last thing that needs to be done before running the EA is to ensure that the
 1. Choose a port number. In general, this should be a four- or five-digit number not less than 1024 and should not be 80 or 443 as those are reserved for HTTP and HTTPS requests. Good examples would include 8000, 8080, 9000, etc. You can choose any value you prefer so long as it isn't reserved for anything else. For a list of commonly used port numbers, please refer to [this article](https://en.wikipedia.org//wiki/List_of_TCP_and_UDP_port_numbers).
 2. Open the control panel. This screen may look different depending on your operating system, but if you have Windows 7/8/10/11 then the screen will have a format similar to this.
 
-![Control Panel](https://github.com/xefino/order-send-master/blob/main/docs/control%20panel.png)
+![Control Panel](https://github.com/xefino/order-send-slave/blob/main/docs/control%20panel.png)
 
 3. Navigate to the Windows Firewall settings. For Windows 7 or later, this will be called Windows Defender. For Windows XP, it may be called Windows Firewall.
 
-![Security & Firewall Setttings](https://github.com/xefino/order-send-master/blob/main/docs/security.png)
+![Security & Firewall Setttings](https://github.com/xefino/order-send-slave/blob/main/docs/security.png)
 
 4. On the side menu, there should be an option labelled `Advanced settings`. Click on this to open up the advanced firewall settings menu.
 
-![Advanced Firewall Settings](https://github.com/xefino/order-send-master/blob/main/docs/advanced.png)
+![Advanced Firewall Settings](https://github.com/xefino/order-send-slave/blob/main/docs/advanced.png)
 
 5. At this point, you will need to create an inbound rule and an outbound rule allowing traffic through the port you chose. So you'll repeat this step and all the following steps for each. Click on the appropriate rule type (`Inbound Rules` and `Outbound Rules`) and then select the `New Rule...` option.
 
-![New Rule Dialog](https://github.com/xefino/order-send-master/blob/main/docs/newrule.png)
+![New Rule Dialog](https://github.com/xefino/order-send-slave/blob/main/docs/newrule.png)
 
 6. In the New Rule dialog, select the `Port` option and click `Next`.
 7. On the next page, ensure TCP is selected for the protocol type and ensure that the `Specific local ports` option is selected. It is not recommended to open all ports as this rule is not tied to a specific program or URL. If you want to run multiple slave EAs on the same machine, you can enter multiple port numbers separated by commas or open a range of ports. **Note that each slave EA must have its own, dedicated port.**. Once you've chosen your port(s), click `Next`.
 
-![Port Selection Page](https://github.com/xefino/order-send-master/blob/main/docs/port%20choice.png)
+![Port Selection Page](https://github.com/xefino/order-send-slave/blob/main/docs/port%20choice.png)
 
 8. On the next page, ensure that `Allow the connection` is selected and click `Next`.
 
-![Connection Page](https://github.com/xefino/order-send-master/blob/main/docs/allow.png)
+![Connection Page](https://github.com/xefino/order-send-slave/blob/main/docs/allow.png)
 
 9. Now, we need to ensure when the rule applies. What you select here will depend on where the master is located and the type of network. If you're not sure, leave all options checked. Click `Next`.
 
-![Rule Page](https://github.com/xefino/order-send-master/blob/main/docs/conditions.png)
+![Rule Page](https://github.com/xefino/order-send-slave/blob/main/docs/conditions.png)
 
 10. Finally, we need to decide on a name for the rule. This guide has named the rule `Slave EA` but you can choose whatever you want for a name, so long as it is memorable to you. You may also add a description for the rule at this time. Once you've done that, click `Finish` and the rule will be complete.
 
-![Naming Page](https://github.com/xefino/order-send-master/blob/main/docs/namerule.png)
+![Naming Page](https://github.com/xefino/order-send-slave/blob/main/docs/namerule.png)
