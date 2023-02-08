@@ -1,9 +1,9 @@
 #property copyright "Xefino"
-#property version   "1.00"
+#property version   "1.02"
 
-// OrderSendSlave
+// OrderReceiver
 // Helper object that can be used to receive trade requests that were dispersed from a master node.
-class OrderSendSlave {
+class OrderReceiver {
 private:
    int      m_socket;   // The index of the socket we'll use to retrieve updates
    string   m_addr;     // The endpoint of the server we'll send trade requests to
@@ -19,15 +19,15 @@ private:
 
 public:
 
-   // Creates a new order-send slave object with the web address of the webserver from which we want to retrieve
+   // Creates a new order receiver object with the web address of the webserver from which we want to retrieve
    // trade requests and the port on which we should expect to receive such requests
    //    addr:    The URL which will be used to register the slave
    //    port:    The port that should be opened to allow retrieval of trade requests (should not be port 80 or 443)
-   OrderSendSlave(const string addr, const uint port);
+   OrderReceiver(const string addr, const uint port);
    
-   // Destroys this instance of the order-send slave by deregistering the slave with the webserver and closing the
+   // Destroys this instance of the order receiver by deregistering the slave with the webserver and closing the
    // associated socket connection
-   ~OrderSendSlave();
+   ~OrderReceiver();
    
    // Receive polls against the socket for trade request data and then populates that data into a number of trade
    // requests. This function will return true if it succeeded or false otherwise. If an error occurred, then it will
@@ -36,11 +36,11 @@ public:
    bool Receive(MqlTradeRequest &requests[]);
 };
 
-// Creates a new order-send slave object with the web address of the webserver from which we want to retrieve
+// Creates a new order receiver object with the web address of the webserver from which we want to retrieve
 // trade requests and the port on which we should expect to receive such requests
 //    addr:    The URL which will be used to register the slave
 //    port:    The port that should be opened to allow retrieval of trade requests (should not be port 80 or 443)
-OrderSendSlave::OrderSendSlave(const string addr, const uint port) {
+OrderReceiver::OrderReceiver(const string addr, const uint port) {
    m_addr = addr;
    m_port = port;
    m_partial = "";
@@ -59,9 +59,9 @@ OrderSendSlave::OrderSendSlave(const string addr, const uint port) {
    }
 }
 
-// Destroys this instance of the order-send slave by deregistering the slave with the webserver and closing the
+// Destroys this instance of the order receiver by deregistering the slave with the webserver and closing the
 // associated socket connection
-OrderSendSlave::~OrderSendSlave() {
+OrderReceiver::~OrderReceiver() {
    UpdateRegistry(m_addr, m_port, false);
    SocketClose(m_socket);
 }
@@ -70,7 +70,7 @@ OrderSendSlave::~OrderSendSlave() {
 // requests. This function will return true if it succeeded or false otherwise. If an error occurred, then it will
 // be stored in _LastError.
 //    requests:   The array of trade requests that should be populated
-bool OrderSendSlave::Receive(MqlTradeRequest &requests[]) {
+bool OrderReceiver::Receive(MqlTradeRequest &requests[]) {
 
    // First, check that the socket is connected and, if it isn't then attempt to connect
    // to the socket. If this fails then print a message and return
@@ -113,7 +113,7 @@ bool OrderSendSlave::Receive(MqlTradeRequest &requests[]) {
    // then print an error message and return
    ArrayResize(requests, ArraySize(payloads));
    for (int i = 0; i < ArraySize(payloads); i++) {
-      errCode = ConvertFromJson(payloads[i], requests[i]);
+      errCode = ConvertFromJSON(payloads[i], requests[i]);
       if (errCode != 0) {
          PrintFormat("Failed to convert payload %d to JSON, error code: %d", i, errCode);
          return false;
@@ -129,7 +129,7 @@ bool OrderSendSlave::Receive(MqlTradeRequest &requests[]) {
 // this function assumes the payload contains single-depth JSON.
 //    raw:        The raw data we received
 //    substrings: The list of strings that will contain our full payloads
-uint OrderSendSlave::SplitJSONPayload(const string raw, string &substrings[]) {
+uint OrderReceiver::SplitJSONPayload(const string raw, string &substrings[]) {
 
    // First, attempt to split the raw string by the opening bracket; if this fails then
    // retrieve the error code and return it. If the string was empty then return now. Otherwise,
@@ -188,76 +188,34 @@ uint OrderSendSlave::SplitJSONPayload(const string raw, string &substrings[]) {
 
 // Helper function that converts the JSON payload into a trade request. This function will
 // return 0 if it was successful or will return a non-zero value in the case of an error
-int ConvertFromJson(const string json, MqlTradeRequest &request) {
+int ConvertFromJSON(const string json, MqlTradeRequest &request) {
    
-   // Remove the starting and ending braces from the JSON payload and split it into 
-   // field-value pairs; if this fails or returns no data then return from the function
-   // immediately as there's nothing else to do
-   string fieldValues [];
-   int len = StringSplit(StringSubstr(json, 1, StringLen(json) - 2), ',', fieldValues);
-   if (len < 0) {
-      return GetLastError();
-   } else if (len == 0) {
-      return 0;
+   // First, write our data to the JSON serializer
+   JSONNode *js = new JSONNode();
+   if (!js.Deserialize(json)) {
+      return -1;
    }
    
-   // Iterate over all the field-value pairs and write each to the trade request
-   for (int i = 0; i < ArraySize(fieldValues); i++) {
+   // Next, extract the values of the various fields from the JSON payload
+   request.Action = (ENUM_TRADE_REQUEST_ACTIONS)js["action"].ToInteger();
+   request.Comment = js["comment"].ToString();
+   request.Expiration = (datetime)js["expiration"].ToInteger();
+   request.Magic = js["magic"].ToInteger();
+   request.Order = js["order"].ToInteger();
+   request.Price = js["price"].ToDouble();
+   request.StopLoss = js["stop_loss"].ToDouble();
+   request.StopLimit = js["stop_limit"].ToDouble();
+   request.Symbol = js["symbol"].ToString();
+   request.TakeProfit = js["take_profit"].ToDouble();
+   request.Type = (ENUM_ORDER_TYPE)js["type"].ToInteger();
+   request.TypeFilling = (ENUM_ORDER_TYPE_FILLING)js["fill_type"].ToInteger();
+   request.TypeTime = (ENUM_ORDER_TYPE_TIME)js["expiration_type"].ToInteger();
+   request.Volume = js["volume"].ToDouble();
    
-      // First, get the index of the colon separating the field from the value; if we don't
-      // find one then the payload is corrupt so return an error
-      int colonIndex = StringFind(fieldValues[i], ":");
-      if (colonIndex < 0) {
-         return -1;
-      }
+   // Finally, delete the JSON serializer
+   delete js;
+   js = NULL;
       
-      // Next, extract the field and value from the field-value pair and strip starting and ending
-      // quotes from the results
-      string field = StringSubstr(fieldValues[i], 1, colonIndex - 2);
-      string value = StringSubstr(fieldValues[i], colonIndex);
-      if (value[0] == '\"' && value[StringLen(value) - 1] == '\"') {
-         value = StringSubstr(value, 1, StringLen(value) - 2);
-      }
-      
-      // Finally, convert the value to its proper type and assign it to the appropriate field on the
-      // trade request based on the value of the JSON field
-      if (field == "action") {
-         request.action = (ENUM_TRADE_REQUEST_ACTIONS)StringToInteger(value);
-      } else if (field == "comment") {
-         request.comment = value;
-      } else if (field == "deviation") {
-         request.deviation = StringToInteger(value);
-      } else if (field == "expiration") {
-         request.expiration = (datetime)StringToInteger(value);
-      } else if (field == "magic") {
-         request.magic = StringToInteger(value);
-      } else if (field == "order_id") {
-         request.order = StringToInteger(value);
-      } else if (field == "position_id") {
-         request.position = StringToInteger(value);
-      } else if (field == "opposite_position_id") {
-         request.position_by = StringToInteger(value);
-      } else if (field == "price") {
-         request.price = StringToDouble(value);
-      } else if (field == "stop_loss") {
-         request.sl = StringToDouble(value);
-      } else if (field == "stop_limit") {
-         request.stoplimit = StringToDouble(value);
-      } else if (field == "symbol") {
-         request.symbol = value;
-      } else if (field == "take_profit") {
-         request.tp = StringToDouble(value);
-      } else if (field == "type") {
-         request.type = (ENUM_ORDER_TYPE)StringToInteger(value);
-      } else if (field == "fill_type") {
-         request.type_filling = (ENUM_ORDER_TYPE_FILLING)StringToInteger(value);
-      } else if (field == "expiration_type") {
-         request.type_time = (ENUM_ORDER_TYPE_TIME)StringToInteger(value);
-      } else if (field == "volume") {
-         request.volume = StringToDouble(value);
-      }
-   }
-   
    return 0;
 }
 

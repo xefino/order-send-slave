@@ -1,12 +1,13 @@
 #property copyright "Xefino"
-#property version   "1.00"
+#property version   "1.02"
 
+#include <mql5-json/Json.mqh>
 #include <order-send-common-mt4/ServerSocket.mqh>
 #include <order-send-common-mt4/TradeRequest.mqh>
 
-// OrderSendSlave
+// OrderReceiver
 // Helper object that can be used to receive trade requests that were dispersed from a master node.
-class OrderSendSlave {
+class OrderReceiver {
 private:
    ServerSocket   *m_socket;  // The index of the socket we'll use to retrieve updates
    string         m_addr;     // The endpoint of the server we'll send trade requests to
@@ -22,15 +23,15 @@ private:
 
 public:
 
-   // Creates a new order-send slave object with the web address of the webserver from which we want to retrieve
+   // Creates a new order receiver object with the web address of the webserver from which we want to retrieve
    // trade requests and the port on which we should expect to receive such requests
    //    addr:    The URL which will be used to register the slave
    //    port:    The port that should be opened to allow retrieval of trade requests (should not be port 80 or 443)
-   OrderSendSlave(const string addr, const ushort port);
+   OrderReceiver(const string addr, const ushort port);
    
-   // Destroys this instance of the order-send slave by deregistering the slave with the webserver and closing the
+   // Destroys this instance of the order receiver by deregistering the slave with the webserver and closing the
    // associated socket connection
-   ~OrderSendSlave();
+   ~OrderReceiver();
    
    // Receive polls against the socket for trade request data and then populates that data into a number of trade
    // requests. This function will return true if it succeeded or false otherwise. If an error occurred, then it will
@@ -39,15 +40,18 @@ public:
    bool Receive(TradeRequest &requests[]);
 };
 
-// Creates a new order-send slave object with the web address of the webserver from which we want to retrieve
+// Creates a new order receiver object with the web address of the webserver from which we want to retrieve
 // trade requests and the port on which we should expect to receive such requests
 //    addr:    The URL which will be used to register the slave
 //    port:    The port that should be opened to allow retrieval of trade requests (should not be port 80 or 443)
-OrderSendSlave::OrderSendSlave(const string addr, const ushort port) {
+OrderReceiver::OrderReceiver(const string addr, const ushort port) {
+   
+   // First, create the base fields on the receiver
    m_addr = addr;
    m_port = port;
    m_partial = "";
    
+   // Next, attempt to register the slave with the system; if this fails then log and return
    uint errCode = UpdateRegistry(m_addr, m_port, true);
    if (errCode != 0) {
       Print("Failed to register client, error code: ", errCode);
@@ -55,16 +59,25 @@ OrderSendSlave::OrderSendSlave(const string addr, const ushort port) {
       return;
    }
    
+   // Finally, attempt to create a server socket; if this fails then log and return. Otherwise,
+   // check for a 4051 error. This is an artifact of some parameter-mismatch between our sockets
+   // code and the winsock.h code and should be ignored as socket creation is verified by the
+   // IsCreated function.
    m_socket = new ServerSocket(port, false);
    if (!m_socket.IsCreated()) {
       Print("Failed to create socket to receive master trades");
       return;
+   } else {
+      int sockErrCode = GetLastError();
+      if (sockErrCode == ERR_INVALID_FUNCTION_PARAMVALUE) {
+         ResetLastError();
+      }
    }
 }
 
-// Destroys this instance of the order-send slave by deregistering the slave with the webserver and closing the
+// Destroys this instance of the order receiver by deregistering the slave with the webserver and closing the
 // associated socket connection
-OrderSendSlave::~OrderSendSlave() {
+OrderReceiver::~OrderReceiver() {
    UpdateRegistry(m_addr, m_port, false);
    delete m_socket;
    m_socket = NULL;
@@ -74,7 +87,7 @@ OrderSendSlave::~OrderSendSlave() {
 // requests. This function will return true if it succeeded or false otherwise. If an error occurred, then it will
 // be stored in _LastError.
 //    requests:   The array of trade requests that should be populated
-bool OrderSendSlave::Receive(TradeRequest &requests[]) {
+bool OrderReceiver::Receive(TradeRequest &requests[]) {
    ClientSocket *client;
    do {
       client = m_socket.Accept();
@@ -113,7 +126,7 @@ bool OrderSendSlave::Receive(TradeRequest &requests[]) {
 // this function assumes the payload contains single-depth JSON.
 //    raw:        The raw data we received
 //    substrings: The list of strings that will contain our full payloads
-uint OrderSendSlave::SplitJSONPayload(const string raw, string &substrings[]) {
+uint OrderReceiver::SplitJSONPayload(const string raw, string &substrings[]) {
 
    // First, attempt to split the raw string by the opening bracket; if this fails then
    // retrieve the error code and return it. If the string was empty then return now. Otherwise,
@@ -174,73 +187,31 @@ uint OrderSendSlave::SplitJSONPayload(const string raw, string &substrings[]) {
 // return 0 if it was successful or will return a non-zero value in the case of an error
 int ConvertFromJSON(const string json, TradeRequest &request) {
    
-   // Remove the starting and ending braces from the JSON payload and split it into 
-   // field-value pairs; if this fails or returns no data then return from the function
-   // immediately as there's nothing else to do
-   string fieldValues [];
-   int len = StringSplit(StringSubstr(json, 1, StringLen(json) - 2), ',', fieldValues);
-   if (len < 0) {
-      return GetLastError();
-   } else if (len == 0) {
-      return 0;
+   // First, write our data to the JSON serializer
+   JSONNode *js = new JSONNode();
+   if (!js.Deserialize(json)) {
+      return -1;
    }
    
-   // Iterate over all the field-value pairs and write each to the trade request
-   for (int i = 0; i < ArraySize(fieldValues); i++) {
+   // Next, extract the values of the various fields from the JSON payload
+   request.Action = (ENUM_TRADE_REQUEST_ACTIONS)js["action"].ToInteger();
+   request.Comment = js["comment"].ToString();
+   request.Expiration = (datetime)js["expiration"].ToInteger();
+   request.Magic = js["magic"].ToInteger();
+   request.Order = js["order"].ToInteger();
+   request.Price = js["price"].ToDouble();
+   request.StopLoss = js["stop_loss"].ToDouble();
+   request.StopLimit = js["stop_limit"].ToDouble();
+   request.Symbol = js["symbol"].ToString();
+   request.TakeProfit = js["take_profit"].ToDouble();
+   request.Type = (ENUM_ORDER_TYPE)js["type"].ToInteger();
+   request.TypeFilling = (ENUM_ORDER_TYPE_FILLING)js["fill_type"].ToInteger();
+   request.TypeTime = (ENUM_ORDER_TYPE_TIME)js["expiration_type"].ToInteger();
+   request.Volume = js["volume"].ToDouble();
    
-      // First, get the index of the colon separating the field from the value; if we don't
-      // find one then the payload is corrupt so return an error
-      int colonIndex = StringFind(fieldValues[i], ":");
-      if (colonIndex < 0) {
-         return -1;
-      }
-      
-      // Next, extract the field and value from the field-value pair and strip starting and ending
-      // quotes from the results
-      string field = StringSubstr(fieldValues[i], 1, colonIndex - 2);
-      string value = StringSubstr(fieldValues[i], colonIndex);
-      if (value[0] == '\"' && value[StringLen(value) - 1] == '\"') {
-         value = StringSubstr(value, 1, StringLen(value) - 2);
-      }
-      
-      // Finally, convert the value to its proper type and assign it to the appropriate field on the
-      // trade request based on the value of the JSON field
-      if (field == "action") {
-         request.Action = (ENUM_TRADE_REQUEST_ACTIONS)StringToInteger(value);
-      } else if (field == "comment") {
-         request.Comment = value;
-      } else if (field == "deviation") {
-         request.Deviation = StringToInteger(value);
-      } else if (field == "expiration") {
-         request.Expiration = (datetime)StringToInteger(value);
-      } else if (field == "magic") {
-         request.Magic = StringToInteger(value);
-      } else if (field == "order_id") {
-         request.Order = StringToInteger(value);
-      } else if (field == "position_id") {
-         request.Position = StringToInteger(value);
-      } else if (field == "opposite_position_id") {
-         request.PositionBy = StringToInteger(value);
-      } else if (field == "price") {
-         request.Price = StringToDouble(value);
-      } else if (field == "stop_loss") {
-         request.StopLoss = StringToDouble(value);
-      } else if (field == "stop_limit") {
-         request.StopLimit = StringToDouble(value);
-      } else if (field == "symbol") {
-         request.Symbol = value;
-      } else if (field == "take_profit") {
-         request.TakeProfit = StringToDouble(value);
-      } else if (field == "type") {
-         request.Type = (ENUM_ORDER_TYPE)StringToInteger(value);
-      } else if (field == "fill_type") {
-         request.TypeFilling = (ENUM_ORDER_TYPE_FILLING)StringToInteger(value);
-      } else if (field == "expiration_type") {
-         request.TypeTime = (ENUM_ORDER_TYPE_TIME)StringToInteger(value);
-      } else if (field == "volume") {
-         request.Volume = StringToDouble(value);
-      }
-   }
+   // Finally, delete the JSON serializer
+   delete js;
+   js = NULL;
    
    return 0;
 }
@@ -249,12 +220,19 @@ int ConvertFromJSON(const string json, TradeRequest &request) {
 uint UpdateRegistry(const string addr, const uint port, const bool enable) {
 
    // First, convert the trade request to JSON and write that to our buffer
-   char req[];
-   string json = StringFormat("{\"enabled\":%s,\"port\":%d}", BoolToString(enable), port);
-   int len = StringToCharArray(json, req) - 1;
+   JSONNode *js = new JSONNode();
+   js["enabled"] = enable;
+   js["port"] = (int)port;
+   js["version"] = "MT4";
    
-   // Next, attempt to send the JSON data to our web server; if this fails then return an error
-   Print("Attempting send...");
+   // Next, serialize it into a string, convert it to a character array; then delete the serializer
+   uchar req[];
+   string json = js.Serialize();
+   int len = StringToCharArray(json, req) - 1;
+   delete js;
+   js = NULL;
+   
+   // Now, attempt to send the JSON data to our web server; if this fails then return an error
    char result[];
    string headers;
    int res = WebRequest("POST", addr, "", "", 1000, req, len, result, headers);
@@ -262,14 +240,7 @@ uint UpdateRegistry(const string addr, const uint port, const bool enable) {
       res = GetLastError();
    }
    
-   PrintFormat("Response Code: %d, Headers: %s, Response: %s", res, headers, CharArrayToString(result));
-
    // Finally, return 0 to indicate that all the operations succeeded if we got a 200 response code
    // Otherwise, return the response code we received
    return res == 200 ? 0 : res;
-}
-
-// Converts a Boolean value to a string
-string BoolToString(const bool in) {
-   return in ? "true" : "false";
 }
