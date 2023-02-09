@@ -41,8 +41,8 @@ This section contains a list of URLs which need to be enabled on the slave EA, t
 | ----------- | ------------ | --- |
 | Test        | Registration | https://qh7g3o0ypc.execute-api.ap-northeast-1.amazonaws.com/register |
 | Test        | Receipt      | https://uzttwvn3enog6rsbszftsdn5cq0nkoyg.lambda-url.ap-northeast-1.on.aws/ |
-| Production  | Registration |     |
-| Production  | Receipt      |     |
+| Production  | Registration | https://rurdtoe916.execute-api.ap-southeast-1.amazonaws.com/register |
+| Production  | Receipt      | https://5fvke4cgomxsg7mvrfdf6f6oge0lsygw.lambda-url.ap-southeast-1.on.aws/ |
 
 ### Opening the Receipt Port
 One last thing that needs to be done before running the EA is to ensure that the port which you plan to use to receive orders is open. This is very important as MetaTrader is not capable of opening ports on its own, and giving it that capability would be a major security risk. Therefore, the user needs to ensure that the port is open properly. This section can serve as a guide for doing so.
