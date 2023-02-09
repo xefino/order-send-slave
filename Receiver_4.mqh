@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.06"
+#property version   "1.07"
 
 #include <mql5-json/Json.mqh>
 #include <order-send-common-mt4/ServerSocket.mqh>

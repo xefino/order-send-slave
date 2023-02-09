@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.06"
+#property version   "1.07"
 
 #include "OrderDuplicator.mqh"
 
@@ -27,6 +27,9 @@ int OnInit() {
    switch (Environment) {
    case ENVIRONMENT_TEST:
       url = "https://qh7g3o0ypc.execute-api.ap-northeast-1.amazonaws.com/register";
+      break;
+   case ENVIRONMENT_PROD:
+      url = "https://rurdtoe916.execute-api.ap-southeast-1.amazonaws.com/register";
       break;
    default:
       Print("Invalid environment selected. Exiting.");
