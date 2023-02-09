@@ -84,6 +84,30 @@ One last thing that needs to be done before running the EA is to ensure that the
 ## Running the Expert
 To run the expert, you open a new chart for any symbol and add the expert to it, by double-clicking on it in the Navigator list or dragging it onto the chart. The expert will be named "Slave_4" or "Slave_5" for MetaTrader 4 and MetaTrader 5, respectively You do not need to run multiple copies of the EA on charts for each symbol which you trade. You should only run one copy of the receiver EA, on any chart. This will attempt to submit a copy of each order it receives from the master EA to the trade server.
 
+### Settings
+This section explains the settings associated with the master.
+
+#### Environment
+The environment to run the master in. There are two values for this: `Test` and `Production`. Test is intended to demonstrate new features but, for actual trading, `Production` should be used. This value will be used to determine which URL the EA uses for registration and receipt of orders.
+
+#### Port
+The port number that this EA should expect to receive orders on. See the [Opening the Receipt Port](#opening-the-receipt-port) section for more information.
+
+#### Password
+The web server requires authentication before it can be accessed. Therefore, the password parameter must be set or all attempts to send orders will fail with a 403 error. The password is not included in this guide. You may request it to be sent to you.
+
+#### Save File Name
+The name of the file to which orders data should be saved. See the [Mapping Orders](#mapping-orders) section for more information.
+
+#### Magic Number
+The magic number to use when sending copied orders to the broker. This value should be unique with respect to all the EAs running on your instance of MT4 or MT5.
+
+#### Arrow Color
+The color of the arrow to use when the trades the EA makes are written to the chart. This value does not need to be set, but is provided for your convenience.
+
+#### Slippage (Pts)
+The number of points to allow in slippage. This parameter has been included because slippage is not retrievable once an order has been submitted, so we have no way of determining what slippage value the master EA used to generate the original trade. Set this to whatever value you prefer.
+
 ## Operation
 In general, the slave expert waits to receive orders from the master expert. The slave EA will then attempt to place the same trade. Transmission is subject to lag but all server resources are located in Singapore in an effort to reduce latency. The time taken to transmit the trade should be no more than three seconds but the actual copy time will also depend on the ability of your broker(s) to handle the copied trade. The data transmitted will depend on the version of MetaTrader you're using and your master and slave must be using the same version of MetaTrader for the transmission to work. Note that if submission of an order fails, for any reason, then the order will not be re-submitted. Further note that the Market Watch must contain all the symbols which are going to be traded. In  addition, if the receiving MT4 account should be in the same currency as the sending account. For example, if the senders’s deposit currency is GBP or JPY, then the receiver's deposit currency must also be GBP or JPY, respectively. Finally, the user should be aware that the slave EA will not copy any orders that were posted before it was started.
 
