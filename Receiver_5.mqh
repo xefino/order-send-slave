@@ -1,14 +1,19 @@
 #property copyright "Xefino"
-#property version   "1.04"
+#property version   "1.05"
 
 // OrderReceiver
 // Helper object that can be used to receive trade requests that were dispersed from a master node.
 class OrderReceiver {
 private:
-   int      m_socket;   // The index of the socket we'll use to retrieve updates
-   string   m_addr;     // The endpoint of the server we'll send trade requests to
-   uint     m_port;     // The port number on which to receive data from the server
-   string   m_partial;  // Partial payload received from previous calls
+   int      m_socket;      // The index of the socket we'll use to retrieve updates
+   string   m_addr;        // The endpoint of the server we'll send trade requests to
+   string   m_auth_header; // The Authorization header to send with the request
+   uint     m_port;        // The port number on which to receive data from the server
+   string   m_partial;     // Partial payload received from previous calls
+
+   // Helper function that updates the registry associated with this client
+   //    enable:     Whether or not the registration should enabled or disabled
+   int UpdateRegistry(const bool enable) const;
 
    // Helper function that splits the payload received into a number of segments that correspond to JSON
    // payloads. This function also updates the partial payload based off of what was left over. Note that
@@ -21,9 +26,10 @@ public:
 
    // Creates a new order receiver object with the web address of the webserver from which we want to retrieve
    // trade requests and the port on which we should expect to receive such requests
-   //    addr:    The URL which will be used to register the slave
-   //    port:    The port that should be opened to allow retrieval of trade requests (should not be port 80 or 443)
-   OrderReceiver(const string addr, const uint port);
+   //    addr:       The URL which will be used to register the slave
+   //    port:       The port that should be opened to allow retrieval of trade requests (should not be port 80 or 443)
+   //    password:   The password that should be used when authenticating this EA for use with the webserver
+   OrderReceiver(const string addr, const uint port, const string password);
    
    // Destroys this instance of the order receiver by deregistering the slave with the webserver and closing the
    // associated socket connection
@@ -38,13 +44,18 @@ public:
 
 // Creates a new order receiver object with the web address of the webserver from which we want to retrieve
 // trade requests and the port on which we should expect to receive such requests
-//    addr:    The URL which will be used to register the slave
-//    port:    The port that should be opened to allow retrieval of trade requests (should not be port 80 or 443)
-OrderReceiver::OrderReceiver(const string addr, const uint port) {
+//    addr:       The URL which will be used to register the slave
+//    port:       The port that should be opened to allow retrieval of trade requests (should not be port 80 or 443)
+//    password:   The password that should be used when authenticating this EA for use with the webserver
+OrderReceiver::OrderReceiver(const string addr, const uint port, const string password) {
+
+   // First, create the base fields on the receiver
    m_addr = addr;
    m_port = port;
+   m_auth_header = StringFormat("Authorization: Bearer %s", password);
    m_partial = "";
    
+   // Next, attempt to register the slave with the system; if this fails then log and return
    uint errCode = UpdateRegistry(m_addr, m_port, true);
    if (errCode != 0) {
       Print("Failed to register client, error code: ", errCode);
@@ -52,6 +63,10 @@ OrderReceiver::OrderReceiver(const string addr, const uint port) {
       return;
    }
    
+   // Finally, attempt to create a server socket; if this fails then log and return. Otherwise,
+   // check for a 4051 error. This is an artifact of some parameter-mismatch between our sockets
+   // code and the winsock.h code and should be ignored as socket creation is verified by the
+   // IsCreated function.
    m_socket = SocketCreate();
    if (m_socket == INVALID_HANDLE) {
       Print("Failed to create socket to receive master trades");
@@ -186,6 +201,36 @@ uint OrderReceiver::SplitJSONPayload(const string raw, string &substrings[]) {
    return 0;
 }
 
+// Helper function that updates the registry associated with this client
+//    enable:     Whether or not the registration should enabled or disabled
+int OrderReceiver::UpdateRegistry(const bool enable) const {
+
+   // First, convert the trade request to JSON and write that to our buffer
+   JSONNode *js = new JSONNode();
+   js["enabled"] = enable;
+   js["port"] = (int)m_port;
+   js["version"] = "MT4";
+   
+   // Next, serialize it into a string, convert it to a character array; then delete the serializer
+   uchar req[];
+   string json = js.Serialize();
+   StringToCharArray(json, req);
+   delete js;
+   js = NULL;
+   
+   // Now, attempt to send the JSON data to our web server; if this fails then return an error
+   char result[];
+   string headers;
+   int res = WebRequest("POST", m_addr, m_auth_header, 1000, req, result, headers);
+   if (res == -1) {
+      res = GetLastError();
+   }
+   
+   // Finally, return 0 to indicate that all the operations succeeded if we got a 200 response code
+   // Otherwise, return the response code we received
+   return res == 200 ? 0 : res;
+
+
 // Helper function that converts the JSON payload into a trade request. This function will
 // return 0 if it was successful or will return a non-zero value in the case of an error
 int ConvertFromJSON(const string json, MqlTradeRequest &request) {
@@ -217,33 +262,4 @@ int ConvertFromJSON(const string json, MqlTradeRequest &request) {
    js = NULL;
       
    return 0;
-}
-
-// Helper function that updates the registry associated with this client
-uint UpdateRegistry(const string addr, const uint port, const bool enable) {
-
-   // First, convert the trade request to JSON and write that to our buffer
-   JSONNode *js = new JSONNode();
-   js["enabled"] = enable;
-   js["port"] = (int)port;
-   js["version"] = "MT4";
-   
-   // Next, serialize it into a string, convert it to a character array; then delete the serializer
-   uchar req[];
-   string json = js.Serialize();
-   int len = StringToCharArray(json, req) - 1;
-   delete js;
-   js = NULL;
-   
-   // Now, attempt to send the JSON data to our web server; if this fails then return an error
-   char result[];
-   string headers;
-   int res = WebRequest("POST", addr, "", "", 1000, req, len, result, headers);
-   if (res == -1) {
-      res = GetLastError();
-   }
-   
-   // Finally, return 0 to indicate that all the operations succeeded if we got a 200 response code
-   // Otherwise, return the response code we received
-   return res == 200 ? 0 : res;
-}
+}}

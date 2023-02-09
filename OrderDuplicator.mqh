@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.04"
+#property version   "1.05"
 #property strict
 
 #include "Receiver_4.mqh"
@@ -34,12 +34,13 @@ public:
    // slippage and chart color. This function will attempt to read the contents of the save file if it exists
    //    addr:       The URL that should be used to register this slave expert
    //    port:       The port number that should be used to receive copied orders
+   //    password:   The password that should be used when authenticating this EA for use with the webserver
    //    magic:      The magic number to use for the duplicator
    //    file:       The name of the save file that the cache data should be written to
    //    slippage:   The slippage that should be applied to received orders
    //    arrow:      The color of the arrow that should be written to chart
-   OrderDuplicator(const string addr, const ushort port, const ulong magic, const string file,
-      const double slippage, const color arrow = CLR_NONE);
+   OrderDuplicator(const string addr, const ushort port, const string password, const ulong magic, 
+      const string file, const double slippage, const color arrow = CLR_NONE);
    
    // Destructor that releases the resources assorted with this duplicator. This function also attempts to
    // write the cached data to the save file so it can be reloaded next time
@@ -54,16 +55,17 @@ public:
 // slippage and chart color. This function will attempt to read the contents of the save file if it exists
 //    addr:       The URL that should be used to register this slave expert
 //    port:       The port number that should be used to receive copied orders
+//    password:   The password that should be used when authenticating this EA for use with the webserver
 //    magic:      The magic number to use for the duplicator
 //    file:       The name of the save file that the cache data should be written to
 //    slippage:   The slippage that should be applied to received orders
 //    arrow:      The color of the arrow that should be written to chart
-OrderDuplicator::OrderDuplicator(const string addr, const ushort port, const ulong magic, 
-   const string file, const double slippage, const color arrow = CLR_NONE) {
+OrderDuplicator::OrderDuplicator(const string addr, const ushort port, const string password,
+   const ulong magic, const string file, const double slippage, const color arrow = CLR_NONE) {
    
    // First, create the ticket cache and order receiver
    m_cache = new TicketCache();
-   m_receiver = new OrderReceiver(addr, port);
+   m_receiver = new OrderReceiver(addr, port, password);
    
    // Next, set the base fields on the order duplicator
    m_file = file;
@@ -151,7 +153,8 @@ int OrderDuplicator::ReadTickets() {
    // First, check if the file exists; if it doesn't then we'll log and exit
    if (!FileIsExist(m_file, FILE_COMMON)) {
       PrintFormat("Ticket-mapping file, %s, not detected. This file will be created.", m_file);
-      return 0;
+      int errCode = GetLastError();
+      return errCode == ERR_FILE_NOT_EXIST ? 0 : errCode;
    }
    
    // Next, attempt to open the file; if this fails then log and return the error code
@@ -165,16 +168,21 @@ int OrderDuplicator::ReadTickets() {
    // Now, iterate over each line in the file and attempt to parse it to a ticket mapping entry
    for (int i = 0; FileIsEnding(handle); i++) {
    
-      // First, read the line and look for the colon; if we don't find it then the file is likely
-      // corrupt so return an error in that case
+      // First, read the line; if it is empty then ignore it and continue on
       string line = FileReadString(handle);
+      if (line == "") {
+         continue;
+      }
+      
+      // Next, check the line for a colon; if we don't find it then the file is likely
+      // corrupt so return an error in that case
       int colonIndex = StringFind(line, ":");
       if (colonIndex == -1) {
          PrintFormat("Line %d of ticket-mapping file, %s, was corrupted", i + 1, m_file);
          return ERR_TICKET_MAPPING_FILE_CORRUPT;
       }
       
-      // Next, extract the source ticket and destination ticket from the file
+      // Now, extract the source ticket and destination ticket from the file
       ulong key = StringToInteger(StringSubstr(line, 0, colonIndex));
       ulong value = StringToInteger(StringSubstr(line, colonIndex));
       
