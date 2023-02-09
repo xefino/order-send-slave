@@ -1,10 +1,10 @@
 #property copyright "Xefino"
-#property version   "1.05"
+#property version   "1.06"
 #property strict
 
 #include "Receiver_4.mqh"
-#include "TicketCache_4.mqh"
 
+#include <order-send-common-mt4/TicketCache.mqh>
 #include <order-send-common-mt4/TradeRequest.mqh>
 
 #define ERR_TICKET_MAPPING_FILE_CORRUPT (1000)

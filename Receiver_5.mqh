@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.05"
+#property version   "1.06"
 
 // OrderReceiver
 // Helper object that can be used to receive trade requests that were dispersed from a master node.
