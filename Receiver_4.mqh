@@ -97,9 +97,8 @@ OrderReceiver::~OrderReceiver() {
 // be stored in _LastError.
 //    requests:   The array of trade requests that should be populated
 bool OrderReceiver::Receive(TradeRequest &requests[]) {
-   ClientSocket *client;
    do {
-      client = m_socket.Accept();
+      ClientSocket *client = m_socket.Accept();
       if (client) {
          
          // First, attempt to receive data on the socket
@@ -126,8 +125,13 @@ bool OrderReceiver::Receive(TradeRequest &requests[]) {
                return false;
             }
          }
+      } else {
+         break;
       }
-   } while (client != NULL);
+      
+      delete client;
+      client = NULL;
+   } while (true);
    return true;
 }
 
