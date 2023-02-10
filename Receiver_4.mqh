@@ -1,9 +1,11 @@
 #property copyright "Xefino"
-#property version   "1.07"
+#property version   "1.08"
 
 #include <mql5-json/Json.mqh>
 #include <order-send-common-mt4/ServerSocket.mqh>
 #include <order-send-common-mt4/TradeRequest.mqh>
+
+#define ERR_SOCKET_NOT_CREATED (2000)
 
 // OrderReceiver
 // Helper object that can be used to receive trade requests that were dispersed from a master node.
@@ -71,6 +73,7 @@ OrderReceiver::OrderReceiver(const string addr, const ushort port, const string 
    // IsCreated function.
    m_socket = new ServerSocket(port, false);
    if (!m_socket.IsCreated()) {
+      SetUserError(ERR_SOCKET_NOT_CREATED);
       Print("Failed to create socket to receive master trades");
       return;
    } else {
