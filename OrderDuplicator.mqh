@@ -114,7 +114,7 @@ int OrderDuplicator::DuplicateAll() {
    // Iterate over all the requests we retrieved...
    for (int i = 0; i < ArraySize(requests); i++) {
       TradeRequest request = requests[i];
-      PrintFormat("Received Copy Order (%s, %s, %d, %f, %f, %f, %f, %s, %d)", request.Order, request.Symbol, request.Type, 
+      PrintFormat("Received Copy Order (%d, %s, %d, %f, %f, %f, %f, %s, %d)", request.Order, request.Symbol, request.Type, 
          request.Volume, request.Price, request.StopLoss, request.TakeProfit, request.Comment, request.Expiration);
          
       // If we already have the key then we have to either update or close the order. Otherwise,
