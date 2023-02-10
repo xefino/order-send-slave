@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.10"
+#property version   "1.11"
 #property strict
 
 #include "Receiver_4.mqh"
@@ -114,14 +114,14 @@ int OrderDuplicator::DuplicateAll() {
    // Iterate over all the requests we retrieved...
    for (int i = 0; i < ArraySize(requests); i++) {
       TradeRequest request = requests[i];
-      PrintFormat("Received Copy Order (%s, %d, %f, %f, %f, %f, %s, %d)", request.Symbol, request.Type, request.Volume,
-         request.Price, request.StopLoss, request.TakeProfit, request.Comment, request.Expiration);
-               
+      PrintFormat("Received Copy Order (%s, %s, %d, %f, %f, %f, %f, %s, %d)", request.Order, request.Symbol, request.Type, 
+         request.Volume, request.Price, request.StopLoss, request.TakeProfit, request.Comment, request.Expiration);
+         
       // If we already have the key then we have to either update or close the order. Otherwise,
       // we have a new order so send it
       ResetLastError();
       if (m_cache.ContainsKey(request.Order)) {
-         // Order exists already; we need to update or close
+         PrintFormat("Order %s was already received and will be ignored", request.Order);
       } else {
       
          // Attempt to send the order we received to the trade server; if this fails then
