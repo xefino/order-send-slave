@@ -1,5 +1,7 @@
 #property copyright "Xefino"
-#property version   "1.09"
+#property version   "1.10"
+
+#define SOCKET_LIBRARY_USE_EVENTS
 
 #include <mql5-json/Json.mqh>
 #include <order-send-common-mt4/ServerSocket.mqh>

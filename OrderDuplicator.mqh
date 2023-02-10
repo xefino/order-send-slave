@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.09"
+#property version   "1.10"
 #property strict
 
 #include "Receiver_4.mqh"
@@ -168,7 +168,7 @@ int OrderDuplicator::ReadTickets() {
    }
    
    // Now, iterate over each line in the file and attempt to parse it to a ticket mapping entry
-   for (int i = 0; FileIsEnding(handle); i++) {
+   for (int i = 0; !FileIsEnding(handle); i++) {
    
       // First, read the line; if it is empty then ignore it and continue on
       string line = FileReadString(handle);
@@ -241,6 +241,7 @@ int OrderDuplicator::WriteTickets() const {
    }
    
    // Close the file when we're done
+   FileFlush(handle);
    FileClose(handle);
    return 0;
 }

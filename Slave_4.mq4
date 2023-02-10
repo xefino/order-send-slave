@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.09"
+#property version   "1.10"
 
 #include "OrderDuplicator.mqh"
 
