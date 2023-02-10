@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.11"
+#property version   "1.12"
 #property strict
 
 #include "Receiver_4.mqh"
@@ -124,17 +124,25 @@ int OrderDuplicator::DuplicateAll() {
          PrintFormat("Order %d was already received and will be ignored", request.Order);
       } else {
       
-         // Attempt to send the order we received to the trade server; if this fails then
+         // First, attempt to send the order we received to the trade server; if this fails then
          // log the error and return the code
          int ticket = OrderSend(request.Symbol, request.Type, request.Volume, request.Price, (int)m_slippage, 
-            request.StopLoss, request.TakeProfit, request.Comment, (int)m_magic, request.Expiration, m_arrow);
+            0, 0, request.Comment, (int)m_magic, request.Expiration, m_arrow);
          if (ticket == -1) {
             int errCode = GetLastError();
             PrintFormat("Failed to copy order for ticket %d, error: %d", request.Order, errCode);
             continue;
          }
          
-         // Attempt to map the master order ticket to our slave ticket; if this fails then log
+         // Next, attempt to modify the order with stop-loss and take-profit levels; if this fails
+         // then log the error. We'll go ahead and cache the order any, though, as we don't want to
+         // duplicate an order we've already received and updated
+         if (!OrderModify(ticket, request.Price, request.StopLoss, request.TakeProfit, request.Expiration, m_arrow)) {
+            int errCode = GetLastError();
+            PrintFormat("Failed to modify order for ticket (%d, %d), error: %d", request.Order, ticket, errCode);
+         }
+         
+         // Finally, attempt to map the master order ticket to our slave ticket; if this fails then log
          // the error and return the code
          if (!m_cache.Add(request.Order, ticket)) {
             int errCode = GetLastError();
