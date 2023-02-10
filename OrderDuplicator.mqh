@@ -121,7 +121,7 @@ int OrderDuplicator::DuplicateAll() {
       // we have a new order so send it
       ResetLastError();
       if (m_cache.ContainsKey(request.Order)) {
-         PrintFormat("Order %s was already received and will be ignored", request.Order);
+         PrintFormat("Order %d was already received and will be ignored", request.Order);
       } else {
       
          // Attempt to send the order we received to the trade server; if this fails then
