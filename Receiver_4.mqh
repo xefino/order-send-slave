@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.14"
+#property version   "1.15"
 
 #define SOCKET_LIBRARY_USE_EVENTS
 

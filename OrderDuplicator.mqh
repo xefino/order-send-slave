@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.14"
+#property version   "1.15"
 #property strict
 
 #include "Receiver_4.mqh"
@@ -125,6 +125,33 @@ int OrderDuplicator::DuplicateAll() {
       } else {
          if (request.ToClose) {
       
+            // First, attempt to retrieve the local ticket associated with this order. If we don't find it
+            // then we probably received a double-send on an order that was already closed so log and continue
+            ulong ticket;
+            if (!m_cache.TryGetValue(request.Order, ticket)) {
+               PrintFormat("Failed to retrieve ticket number for closed order %d", request.Order);
+               continue;
+            }
+         
+            // Next, attempt to close the order associated with the request. If this fails
+            // then log the error and continue
+            if (!OrderClose((int)ticket, request.Volume, request.Price, (int)m_slippage, m_arrow)) {
+               int errCode = GetLastError();
+               PrintFormat("Failed to copy close order for ticket (master: %d, slave: %d), error: %d",
+                  request.Order, ticket, errCode);
+               continue;
+            }
+            
+            // Finally, attempt to remove the order from the cache so we don't try to resend it later
+            // If this fails then log the error and continue
+            if (!m_cache.Remove(request.Order)) {
+               int errCode = GetLastError();
+               PrintFormat("Failed to update order cache (master: %d, slave: %d), error: %d",
+                  request.Order, ticket, errCode);
+               continue;
+            }
+         } else {
+            
             // First, attempt to send the order we received to the trade server; if this fails then
             // log the error and return the code
             int ticket = OrderSend(request.Symbol, request.Type, request.Volume, request.Price, (int)m_slippage, 
@@ -149,33 +176,6 @@ int OrderDuplicator::DuplicateAll() {
             if (!m_cache.Add(request.Order, ticket)) {
                int errCode = GetLastError();
                PrintFormat("Failed to cache order (master: %d, slave: %d), error: %d",
-                  request.Order, ticket, errCode);
-               continue;
-            }
-         } else {
-            
-            // First, attempt to retrieve the local ticket associated with this order. If we don't find it
-            // then we probably received a double-send on an order that was already closed so log and continue
-            ulong ticket;
-            if (!m_cache.TryGetValue(request.Order, ticket)) {
-               PrintFormat("Failed to retrieve ticket number for closed order %d", request.Order);
-               continue;
-            }
-         
-            // Next, attempt to close the order associated with the request. If this fails
-            // then log the error and continue
-            if (!OrderClose((int)ticket, request.Volume, request.Price, (int)m_slippage, m_arrow)) {
-               int errCode = GetLastError();
-               PrintFormat("Failed to copy close order for ticket (master: %d, slave: %d), error: %d",
-                  request.Order, ticket, errCode);
-               continue;
-            }
-            
-            // Finally, attempt to remove the order from the cache so we don't try to resend it later
-            // If this fails then log the error and continue
-            if (!m_cache.Remove(request.Order)) {
-               int errCode = GetLastError();
-               PrintFormat("Failed to update order cache (master: %d, slave: %d), error: %d",
                   request.Order, ticket, errCode);
                continue;
             }
