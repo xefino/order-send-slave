@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.12"
+#property version   "1.14"
 
 #define SOCKET_LIBRARY_USE_EVENTS
 
@@ -250,6 +250,7 @@ int ConvertFromJSON(const string json, TradeRequest &request) {
    request.StopLimit = js["stop_limit"].ToDouble();
    request.Symbol = js["symbol"].ToString();
    request.TakeProfit = js["take_profit"].ToDouble();
+   request.ToClose = js["to_close"].ToBool();
    request.Type = (ENUM_ORDER_TYPE)js["type"].ToInteger();
    request.TypeFilling = (ENUM_ORDER_TYPE_FILLING)js["fill_type"].ToInteger();
    request.TypeTime = (ENUM_ORDER_TYPE_TIME)js["expiration_type"].ToInteger();

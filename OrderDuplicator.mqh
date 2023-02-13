@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.12"
+#property version   "1.14"
 #property strict
 
 #include "Receiver_4.mqh"
@@ -120,35 +120,65 @@ int OrderDuplicator::DuplicateAll() {
       // If we already have the key then we have to either update or close the order. Otherwise,
       // we have a new order so send it
       ResetLastError();
-      if (m_cache.ContainsKey(request.Order)) {
+      if (m_cache.ContainsKey(request.Order) != request.ToClose) {
          PrintFormat("Order %d was already received and will be ignored", request.Order);
       } else {
+         if (request.ToClose) {
       
-         // First, attempt to send the order we received to the trade server; if this fails then
-         // log the error and return the code
-         int ticket = OrderSend(request.Symbol, request.Type, request.Volume, request.Price, (int)m_slippage, 
-            0, 0, request.Comment, (int)m_magic, request.Expiration, m_arrow);
-         if (ticket == -1) {
-            int errCode = GetLastError();
-            PrintFormat("Failed to copy order for ticket %d, error: %d", request.Order, errCode);
-            continue;
-         }
+            // First, attempt to send the order we received to the trade server; if this fails then
+            // log the error and return the code
+            int ticket = OrderSend(request.Symbol, request.Type, request.Volume, request.Price, (int)m_slippage, 
+               0, 0, request.Comment, (int)m_magic, request.Expiration, m_arrow);
+            if (ticket == -1) {
+               int errCode = GetLastError();
+               PrintFormat("Failed to copy order for ticket %d, error: %d", request.Order, errCode);
+               continue;
+            }
+            
+            // Next, attempt to modify the order with stop-loss and take-profit levels; if this fails
+            // then log the error. We'll go ahead and cache the order any, though, as we don't want to
+            // duplicate an order we've already received and updated
+            if (!OrderModify(ticket, request.Price, request.StopLoss, request.TakeProfit, request.Expiration, m_arrow)) {
+               int errCode = GetLastError();
+               PrintFormat("Failed to modify order for ticket (master: %d, slave: %d), error: %d", 
+                  request.Order, ticket, errCode);
+            }
+            
+            // Finally, attempt to map the master order ticket to our slave ticket; if this fails then log
+            // the error and return the code
+            if (!m_cache.Add(request.Order, ticket)) {
+               int errCode = GetLastError();
+               PrintFormat("Failed to cache order (master: %d, slave: %d), error: %d",
+                  request.Order, ticket, errCode);
+               continue;
+            }
+         } else {
+            
+            // First, attempt to retrieve the local ticket associated with this order. If we don't find it
+            // then we probably received a double-send on an order that was already closed so log and continue
+            ulong ticket;
+            if (!m_cache.TryGetValue(request.Order, ticket)) {
+               PrintFormat("Failed to retrieve ticket number for closed order %d", request.Order);
+               continue;
+            }
          
-         // Next, attempt to modify the order with stop-loss and take-profit levels; if this fails
-         // then log the error. We'll go ahead and cache the order any, though, as we don't want to
-         // duplicate an order we've already received and updated
-         if (!OrderModify(ticket, request.Price, request.StopLoss, request.TakeProfit, request.Expiration, m_arrow)) {
-            int errCode = GetLastError();
-            PrintFormat("Failed to modify order for ticket (%d, %d), error: %d", request.Order, ticket, errCode);
-         }
-         
-         // Finally, attempt to map the master order ticket to our slave ticket; if this fails then log
-         // the error and return the code
-         if (!m_cache.Add(request.Order, ticket)) {
-            int errCode = GetLastError();
-            PrintFormat("Failed to cache order (master: %d, slave: %d), error: %d",
-               request.Order, ticket, errCode);
-            continue;
+            // Next, attempt to close the order associated with the request. If this fails
+            // then log the error and continue
+            if (!OrderClose((int)ticket, request.Volume, request.Price, (int)m_slippage, m_arrow)) {
+               int errCode = GetLastError();
+               PrintFormat("Failed to copy close order for ticket (master: %d, slave: %d), error: %d",
+                  request.Order, ticket, errCode);
+               continue;
+            }
+            
+            // Finally, attempt to remove the order from the cache so we don't try to resend it later
+            // If this fails then log the error and continue
+            if (!m_cache.Remove(request.Order)) {
+               int errCode = GetLastError();
+               PrintFormat("Failed to update order cache (master: %d, slave: %d), error: %d",
+                  request.Order, ticket, errCode);
+               continue;
+            }
          }
       }
    }
