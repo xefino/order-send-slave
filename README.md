@@ -40,7 +40,7 @@ This section contains a list of URLs which need to be enabled on the slave EA, t
 | Environment | Purpose      | URL |
 | ----------- | ------------ | --- |
 | Test        | Registration | https://qh7g3o0ypc.execute-api.ap-northeast-1.amazonaws.com/register |
-| Test        | Receipt      | https://uzttwvn3enog6rsbszftsdn5cq0nkoyg.lambda-url.ap-northeast-1.on.aws/ |
+| Test        | Receipt      | https://ac6w6dcdlnkvztraxyqndrct7e0rkxav.lambda-url.ap-northeast-1.on.aws/ |
 | Production  | Registration | https://rurdtoe916.execute-api.ap-southeast-1.amazonaws.com/register |
 | Production  | Receipt      | https://5fvke4cgomxsg7mvrfdf6f6oge0lsygw.lambda-url.ap-southeast-1.on.aws/ |
 
