@@ -1,7 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.15"
-
-#define SOCKET_LIBRARY_USE_EVENTS
+#property version   "1.16"
 
 #include <mql5-json/Json.mqh>
 #include <order-send-common-mt4/ServerSocket.mqh>
@@ -205,6 +203,7 @@ int OrderReceiver::UpdateRegistry(const bool enable) const {
 
    // First, convert the trade request to JSON and write that to our buffer
    JSONNode *js = new JSONNode();
+   js["account"] = (long)AccountInfoInteger(ACCOUNT_LOGIN);
    js["enabled"] = enable;
    js["port"] = (int)m_port;
    js["version"] = "MT4";

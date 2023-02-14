@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.15"
+#property version   "1.16"
 
 // OrderReceiver
 // Helper object that can be used to receive trade requests that were dispersed from a master node.
@@ -207,6 +207,7 @@ int OrderReceiver::UpdateRegistry(const bool enable) const {
 
    // First, convert the trade request to JSON and write that to our buffer
    JSONNode *js = new JSONNode();
+   js["account"] = (long)AccountInfoInteger(ACCOUNT_LOGIN);
    js["enabled"] = enable;
    js["port"] = (int)m_port;
    js["version"] = "MT4";
