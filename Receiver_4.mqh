@@ -203,7 +203,7 @@ int OrderReceiver::UpdateRegistry(const bool enable) const {
 
    // First, convert the trade request to JSON and write that to our buffer
    JSONNode *js = new JSONNode();
-   js["account"] = (long)AccountInfoInteger(ACCOUNT_LOGIN);
+   js["account"] = IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN));
    js["enabled"] = enable;
    js["port"] = (int)m_port;
    js["version"] = "MT4";
