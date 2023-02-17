@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.16"
+#property version   "1.17"
 
 #include <mql5-json/Json.mqh>
 #include <order-send-common-mt4/ServerSocket.mqh>
@@ -135,6 +135,37 @@ bool OrderReceiver::Receive(TradeRequest &requests[]) {
    return true;
 }
 
+// Helper function that updates the registry associated with this client
+//    enable:     Whether or not the registration should enabled or disabled
+int OrderReceiver::UpdateRegistry(const bool enable) const {
+
+   // First, convert the trade request to JSON and write that to our buffer
+   JSONNode *js = new JSONNode();
+   js["account"] = IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN));
+   js["enabled"] = enable;
+   js["port"] = (int)m_port;
+   js["version"] = "MT4";
+   
+   // Next, serialize it into a string, convert it to a character array; then delete the serializer
+   uchar req[];
+   string json = js.Serialize();
+   StringToCharArray(json, req);
+   delete js;
+   js = NULL;
+   
+   // Now, attempt to send the JSON data to our web server; if this fails then return an error
+   char result[];
+   string headers;
+   int res = WebRequest("POST", m_addr, m_auth_header, 1000, req, result, headers);
+   if (res == -1) {
+      res = GetLastError();
+   }
+   
+   // Finally, return 0 to indicate that all the operations succeeded if we got a 200 response code
+   // Otherwise, return the response code we received
+   return res == 200 ? 0 : res;
+}
+
 // Helper function that splits the payload received into a number of segments that correspond to JSON
 // payloads. This function also updates the partial payload based off of what was left over. Note that
 // this function assumes the payload contains single-depth JSON.
@@ -195,37 +226,6 @@ uint OrderReceiver::SplitJSONPayload(const string raw, string &substrings[]) {
    // Update the partial payload and return
    m_partial = end;
    return 0;
-}
-
-// Helper function that updates the registry associated with this client
-//    enable:     Whether or not the registration should enabled or disabled
-int OrderReceiver::UpdateRegistry(const bool enable) const {
-
-   // First, convert the trade request to JSON and write that to our buffer
-   JSONNode *js = new JSONNode();
-   js["account"] = IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN));
-   js["enabled"] = enable;
-   js["port"] = (int)m_port;
-   js["version"] = "MT4";
-   
-   // Next, serialize it into a string, convert it to a character array; then delete the serializer
-   uchar req[];
-   string json = js.Serialize();
-   StringToCharArray(json, req);
-   delete js;
-   js = NULL;
-   
-   // Now, attempt to send the JSON data to our web server; if this fails then return an error
-   char result[];
-   string headers;
-   int res = WebRequest("POST", m_addr, m_auth_header, 1000, req, result, headers);
-   if (res == -1) {
-      res = GetLastError();
-   }
-   
-   // Finally, return 0 to indicate that all the operations succeeded if we got a 200 response code
-   // Otherwise, return the response code we received
-   return res == 200 ? 0 : res;
 }
 
 // Helper function that converts the JSON payload into a trade request. This function will

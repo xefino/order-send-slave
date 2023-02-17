@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.16"
+#property version   "1.17"
 #property strict
 
 #include "Receiver_4.mqh"
@@ -15,11 +15,19 @@ class OrderDuplicator {
 private:
    TicketCache    *m_cache;      // An object we'll use to cache ticket numbers of received orders
    OrderReceiver  *m_receiver;   // Receiver for orders that need to be copied
+   string         m_addr;        // The address we'll use to register the EA
+   ushort         m_port;        // The port we'll use to receive data from the EA
+   string         m_password;    // The password we'll use when we register the slave EA
    string         m_file;        // The name of the file that should be used to store ticket mappings
    ulong          m_magic;       // The magic number for this EA
    double         m_slippage;    // The slippage to allow when pushing new orders
    color          m_arrow;       // The arrow color to use for this EA
    
+   // Helper function that reads the configuration for this EA from a file. This function will
+   // return 0 if it was successful, or an error code otherwise
+   //    conf:    The name of the configuration file to load
+   int LoadConfiguration(const string conf);
+
    // Helper function that reads the cache data from our slave EA's save file. This function will
    // return an error if the read fails
    int ReadTickets();
@@ -32,15 +40,11 @@ public:
    
    // Creates a new instance of the order duplicator from our address, port, magic number, save file name,
    // slippage and chart color. This function will attempt to read the contents of the save file if it exists
-   //    addr:       The URL that should be used to register this slave expert
-   //    port:       The port number that should be used to receive copied orders
-   //    password:   The password that should be used when authenticating this EA for use with the webserver
    //    magic:      The magic number to use for the duplicator
-   //    file:       The name of the save file that the cache data should be written to
+   //    conf:       The configuration file to use when running this EA
    //    slippage:   The slippage that should be applied to received orders
    //    arrow:      The color of the arrow that should be written to chart
-   OrderDuplicator(const string addr, const ushort port, const string password, const ulong magic, 
-      const string file, const double slippage, const color arrow = CLR_NONE);
+   OrderDuplicator(const ulong magic, const string conf, const double slippage, const color arrow = CLR_NONE);
    
    // Destructor that releases the resources assorted with this duplicator. This function also attempts to
    // write the cached data to the save file so it can be reloaded next time
@@ -53,28 +57,31 @@ public:
 
 // Creates a new instance of the order duplicator from our address, port, magic number, save file name,
 // slippage and chart color. This function will attempt to read the contents of the save file if it exists
-//    addr:       The URL that should be used to register this slave expert
-//    port:       The port number that should be used to receive copied orders
-//    password:   The password that should be used when authenticating this EA for use with the webserver
 //    magic:      The magic number to use for the duplicator
-//    file:       The name of the save file that the cache data should be written to
+//    conf:       The configuration file to use when running this EA
 //    slippage:   The slippage that should be applied to received orders
 //    arrow:      The color of the arrow that should be written to chart
-OrderDuplicator::OrderDuplicator(const string addr, const ushort port, const string password,
-   const ulong magic, const string file, const double slippage, const color arrow = CLR_NONE) {
+OrderDuplicator::OrderDuplicator(const ulong magic, const string conf, 
+   const double slippage, const color arrow = CLR_NONE) {
    
-   // First, create the ticket cache and order receiver
+   // First, attempt to read the configuration file; if this fails then return here
+   int errCode = LoadConfiguration(conf);
+   if (errCode != 0) {
+      SetUserError((ushort)errCode);
+      return;
+   }
+   
+   // Next, create the ticket cache and order receiver
    m_cache = new TicketCache();
-   m_receiver = new OrderReceiver(addr, port, password);
+   m_receiver = new OrderReceiver(m_addr, m_port, m_password);
    
-   // Next, set the base fields on the order duplicator
-   m_file = file;
+   // Now, set the base fields on the order duplicator
    m_slippage = slippage;
    m_magic = magic;
    m_arrow = arrow;
    
    // Finally, attempt to read the cache file if we have one
-   int errCode = ReadTickets();
+   errCode = ReadTickets();
    if (errCode != 0) {
       SetUserError((ushort)errCode);
    }
@@ -183,6 +190,63 @@ int OrderDuplicator::DuplicateAll() {
       }
    }
    
+   return 0;
+}
+
+// Helper function that reads the configuration for this EA from a file. This function will
+// return 0 if it was successful, or an error code otherwise
+//    conf:    The name of the configuration file to load
+int OrderDuplicator::LoadConfiguration(const string conf) {
+
+   // First, check if the configuration file exists; if it doesn't then we'll return an error
+   // and inform the user that they need to reinstall the EA
+   if (!FileIsExist(conf, FILE_COMMON)) {
+      int errCode = GetLastError();
+      PrintFormat("Configuration file, %s, not found, error: %d. Please reinstall.", conf, errCode);
+      return errCode;
+   }
+   
+   // Attempt to open the file; if this fails then log and return the error code
+   int handle = FileOpen(conf, FILE_READ | FILE_TXT | FILE_UNICODE | FILE_COMMON);
+   if (handle == INVALID_HANDLE) {
+      int errCode = GetLastError();
+      PrintFormat("Failed to open ticket-mapping file, %s, error: %d", conf, errCode);
+      return errCode;
+   }
+   
+   // Next, iterate over the file contents and aggregate them into a single string
+   string json = "";
+   for (int i = 0; !FileIsEnding(handle); i++) {
+   
+      // Read the line; if it is empty then ignore it and continue on
+      string line = FileReadString(handle);
+      if (line == "") {
+         continue;
+      }
+      
+      // Add the line of data we read to the total file
+      json += line;
+   };
+   
+   // Close the file we opened
+   FileClose(handle);
+   
+   // Now, create a new JSON node and attempt to deserialize the data. If this fails then log and return
+   JSONNode *js = new JSONNode();
+   if (!js.Deserialize(json)) {
+      PrintFormat("Failed to parse configuration file, %s", conf);
+      return -1;
+   }
+   
+   // Finally, read the contents of the JSON into the fields associated with our order duplicator
+   m_file = StringFormat("%d_%s", AccountInfoInteger(ACCOUNT_LOGIN), js["cache"].ToString());
+   m_addr = js["url"].ToString();
+   m_port = (ushort)js["port"].ToInteger();
+   m_password = js["password"].ToString();
+   
+   // Delete the JSON serializer and return
+   delete js;
+   js = NULL;
    return 0;
 }
 
