@@ -2,7 +2,9 @@
 This library contains MT4 and MT5 Expert Advisors to receive orders from a master Expert Advisors to which it is connected. This code works by registering the IP address and port of the expert advisor with the web server, and then opening a socket to receive trade requests sent from the server.
 
 ## Installation
-To install this expert, simply clone the repository to your `/MQL5/Experts` directory, for MT5, or your `/MQL4/Experts` directory for MT4. Once you've done that, install the [Json package](https://github.com/xefino/mql5-json), which this library depends on, to the same directory. For MQL4, you'll also need to install the [order-send-common-mt4 package](https://github.com/xefino/order-send-common-mt4).
+This EA comes with an installer, which can be downloaded [here](https://github.com/xefino/order-send-slave-installer/raw/main/installer/installer.exe).
+
+Otherwise, to install this expert manually, simply clone the repository to your `/MQL5/Experts` directory, for MT5, or your `/MQL4/Experts` directory for MT4. Once you've done that, install the [Json package](https://github.com/xefino/mql5-json), which this library depends on, to the same directory. For MQL4, you'll also need to install the [order-send-common-mt4 package](https://github.com/xefino/order-send-common-mt4). Note that if you download any of these repositories as archives, the actual repository name will be appended with `-main`, so you'll have rename the archives to fix this.
 
 ### MetaTrader 4 Settings
 Before running the expert, you must ensure that your instance of MetaTrader 4 is configured properly. This expert makes use of web requests to register the slave EA so it can receive and then makes use of an internal sockets library to receive orders sent from the server. Therefore, web requests need to be enabled to two URLs from the table in the [URLs section](#urls): one for registration and one for receipt. Moreover, algorithmic trading and DLL imports need to be enabled. Failing to do so will result in slave registration returning a 4014 error and/or failure of the slave expert to receive any orders. To do this, simply execute the following steps:
