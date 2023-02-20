@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.18"
+#property version   "1.19"
 #property strict
 
 #include "Receiver_4.mqh"
@@ -200,14 +200,14 @@ int OrderDuplicator::LoadConfiguration(const string conf) {
 
    // First, check if the configuration file exists; if it doesn't then we'll return an error
    // and inform the user that they need to reinstall the EA
-   if (!FileIsExist(conf, FILE_COMMON)) {
+   if (!FileIsExist(conf)) {
       int errCode = GetLastError();
       PrintFormat("Configuration file, %s, not found, error: %d. Please reinstall.", conf, errCode);
       return errCode;
    }
    
    // Attempt to open the file; if this fails then log and return the error code
-   int handle = FileOpen(conf, FILE_READ | FILE_TXT | FILE_UNICODE);
+   int handle = FileOpen(conf, FILE_READ | FILE_TXT);
    if (handle == INVALID_HANDLE) {
       int errCode = GetLastError();
       PrintFormat("Failed to open ticket-mapping file, %s, error: %d", conf, errCode);
