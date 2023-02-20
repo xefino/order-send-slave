@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.17"
+#property version   "1.18"
 #property strict
 
 #include "Receiver_4.mqh"
@@ -207,7 +207,7 @@ int OrderDuplicator::LoadConfiguration(const string conf) {
    }
    
    // Attempt to open the file; if this fails then log and return the error code
-   int handle = FileOpen(conf, FILE_READ | FILE_TXT | FILE_UNICODE | FILE_COMMON);
+   int handle = FileOpen(conf, FILE_READ | FILE_TXT | FILE_UNICODE);
    if (handle == INVALID_HANDLE) {
       int errCode = GetLastError();
       PrintFormat("Failed to open ticket-mapping file, %s, error: %d", conf, errCode);
