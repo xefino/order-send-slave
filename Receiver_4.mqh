@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.19"
+#property version   "1.20"
 
 #include <mql5-json/Json.mqh>
 #include <order-send-common-mt4/ServerSocket.mqh>
@@ -146,24 +146,27 @@ int OrderReceiver::UpdateRegistry(const bool enable) const {
    js["port"] = (int)m_port;
    js["version"] = "MT4";
    
-   // Next, serialize it into a string, convert it to a character array; then delete the serializer
-   uchar req[];
+   // Next, serialize it into a string, then delete the serializer
    string json = js.Serialize();
-   StringToCharArray(json, req);
    delete js;
    js = NULL;
    
-   // Now, attempt to send the JSON data to our web server; if this fails then return an error
-   char result[];
-   string headers;
-   int res = WebRequest("POST", m_addr, m_auth_header, 1000, req, result, headers);
-   if (res == -1) {
-      res = GetLastError();
-   }
+   // Now, create a new HTTP request and add the appropriate headers
+   HttpRequest req("POST", m_addr, json);
+   req.AddHeader("Accept", "application/json");
+   req.AddHeader("Authorization", m_auth_header);
    
-   // Finally, return 0 to indicate that all the operations succeeded if we got a 200 response code
-   // Otherwise, return the response code we received
-   return res == 200 ? 0 : res;
+   // Finally, post the HTTP request; if this fails or returns a non-200 response
+   // code then return an error; otherwise, return 0
+   HttpResponse resp;
+   int errCode = req.Send(resp);
+   if (errCode != 0) {
+      return errCode;
+   } else if (resp.StatusCode != 200) {
+      return resp.StatusCode;
+   } else {
+      return 0;
+   }
 }
 
 // Helper function that splits the payload received into a number of segments that correspond to JSON
