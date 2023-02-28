@@ -42,18 +42,19 @@ This section contains a list of URLs which need to be enabled on the slave EA, t
 | Environment | Purpose      | URL |
 | ----------- | ------------ | --- |
 | Test        | Registration | https://qh7g3o0ypc.execute-api.ap-northeast-1.amazonaws.com/register |
-| Test        | Receipt      | https://ac6w6dcdlnkvztraxyqndrct7e0rkxav.lambda-url.ap-northeast-1.on.aws/ |
 | Production  | Registration | https://rurdtoe916.execute-api.ap-southeast-1.amazonaws.com/register |
-| Production  | Receipt      | https://sk4huafdztuaba67mxtf7tpb7q0lebzx.lambda-url.ap-southeast-1.on.aws/ |
 
-### Verifying your IP Address
+### Troubleshooting
+If you're having trouble running the EA, this section may provide some help.
+
+#### Verifying your IP Address
 Before attempting to run this EA, we need to check if your IP address is compatible with the form of socket communication that is necessary to handle incoming requests from the web server:
 
 1. Press `Windows+R` to open the App Run dialog. In this dialog, type `cmd` and press `Enter`. A terminal should appear.
 2. In the terminal, type `ipconfig` and press `Enter`.
 3. This command should print your local IP address. Look at the first part of the address. If it is equal to 192, then you have a private IP address so you'll have to contact your ISP about opening the port. Alternatively, you can rely on a proxy service to forward traffic but that isn't covered by this guide.
 
-### Opening the Receipt Port
+#### Opening the Receipt Port
 One last thing that needs to be done before running the EA is to ensure that the port which you plan to use to receive orders is open. This is very important as MetaTrader is not capable of opening ports on its own, and giving it that capability would be a major security risk. Therefore, the user needs to ensure that the port is open properly. This section can serve as a guide for doing so.
 
 1. Choose a port number. In general, this should be a four- or five-digit number not less than 1024 and should not be 80 or 443 as those are reserved for HTTP and HTTPS requests. Good examples would include 8000, 8080, 9000, etc. You can choose any value you prefer so long as it isn't reserved for anything else. For a list of commonly used port numbers, please refer to [this article](https://en.wikipedia.org//wiki/List_of_TCP_and_UDP_port_numbers).
