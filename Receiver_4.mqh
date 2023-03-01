@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.22"
+#property version   "1.23"
 
 #include <order-send-common-mt4/ServerSocket.mqh>
 #include <order-send-common-mt4/TradeRequest.mqh>
@@ -8,15 +8,19 @@
 
 #define ERR_SOCKET_NOT_CREATED (2000)
 
+#define HEARTBEAT_SECONDS (600)
+
 // OrderReceiver
 // Helper object that can be used to receive trade requests that were dispersed from a master node.
 class OrderReceiver {
 private:
-   ServerSocket   *m_socket;     // The index of the socket we'll use to retrieve updates
-   string         m_addr;        // The endpoint of the server we'll send trade requests to
-   string         m_auth_header; // The Authorization header to send with the request
-   uint           m_port;        // The port number on which to receive data from the server
-   string         m_partial;     // Partial payload received from previous calls
+   ServerSocket   *m_socket;        // The index of the socket we'll use to retrieve updates
+   string         m_register_addr;  // The endpoint of the server we'll use to register the slave
+   string         m_heartbeat_addr; // The endpoint of the server we'll send heartbeat requests to
+   string         m_auth_header;    // The Authorization header to send with the request
+   uint           m_port;           // The port number on which to receive data from the server
+   string         m_partial;        // Partial payload received from previous calls
+   datetime       m_last;           // The last time we sent an update to the heartbeat server
 
    // Helper function that updates the registry associated with this client
    //    enable:     Whether or not the registration should enabled or disabled
@@ -27,35 +31,41 @@ private:
    // this function assumes the payload contains single-depth JSON.
    //    raw:        The raw data we received
    //    substrings: The list of strings that will contain our full payloads
-   uint SplitJSONPayload(const string raw, string &substrings[]);
+   int SplitJSONPayload(const string raw, string &substrings[]);
 
 public:
 
    // Creates a new order receiver object with the web address of the webserver from which we want to retrieve
    // trade requests and the port on which we should expect to receive such requests
-   //    addr:    The URL which will be used to register the slave
-   //    port:    The port that should be opened to allow retrieval of trade requests (should not be port 80 or 443)
-   OrderReceiver(const string addr, const ushort port, const string password);
+   //    registerAddr:  The URL which will be used to register the slave
+   //    heartbeatAddr: The URL format which will be used to send heartbeat requests
+   //    port:          The port that should be opened to allow retrieval of trade requests (should not be port 80 or 443)
+   OrderReceiver(const string registerAddr, const string heartbeatAddr, const ushort port, const string password);
    
    // Destroys this instance of the order receiver by deregistering the slave with the webserver and closing the
    // associated socket connection
    ~OrderReceiver();
    
    // Receive polls against the socket for trade request data and then populates that data into a number of trade
-   // requests. This function will return true if it succeeded or false otherwise. If an error occurred, then it will
-   // be stored in _LastError.
+   // requests. This function will return 0 if it succeeded, or an error code otherwise
    //    requests:   The array of trade requests that should be populated
-   bool Receive(TradeRequest &requests[]);
+   int Receive(TradeRequest &requests[]);
+   
+   // Send an update to the server, letting them know that we're still there. This function will return zero if
+   // the no error occurs, or a non-zero error code otherwise
+   int Heartbeat();
 };
 
 // Creates a new order receiver object with the web address of the webserver from which we want to retrieve
 // trade requests and the port on which we should expect to receive such requests
-//    addr:    The URL which will be used to register the slave
-//    port:    The port that should be opened to allow retrieval of trade requests (should not be port 80 or 443)
-OrderReceiver::OrderReceiver(const string addr, const ushort port, const string password) {
+//    registerAddr:  The URL which will be used to register the slave
+//    heartbeatAddr: The URL format which will be used to send heartbeat requests
+//    port:          The port that should be opened to allow retrieval of trade requests (should not be port 80 or 443)
+OrderReceiver::OrderReceiver(const string registerAddr, const string heartbeatAddr, const ushort port, const string password) {
    
    // First, create the base fields on the receiver
-   m_addr = addr;
+   m_register_addr = registerAddr;
+   m_heartbeat_addr = StringFormat(heartbeatAddr, AccountInfoInteger(ACCOUNT_LOGIN), "MT4");
    m_port = port;
    m_auth_header = StringFormat("Bearer %s", password);
    m_partial = "";
@@ -68,7 +78,7 @@ OrderReceiver::OrderReceiver(const string addr, const ushort port, const string 
       return;
    }
    
-   // Finally, attempt to create a server socket; if this fails then log and return. Otherwise,
+   // Now, attempt to create a server socket; if this fails then log and return. Otherwise,
    // check for a 4051 error. This is an artifact of some parameter-mismatch between our sockets
    // code and the winsock.h code and should be ignored as socket creation is verified by the
    // IsCreated function.
@@ -83,6 +93,9 @@ OrderReceiver::OrderReceiver(const string addr, const ushort port, const string 
          ResetLastError();
       }
    }
+   
+   // Finally, update the heartbeat time so we don't request a heartbeat immediately after starting
+   m_last = TimeLocal();
 }
 
 // Destroys this instance of the order receiver by deregistering the slave with the webserver and closing the
@@ -94,10 +107,9 @@ OrderReceiver::~OrderReceiver() {
 }
 
 // Receive polls against the socket for trade request data and then populates that data into a number of trade
-// requests. This function will return true if it succeeded or false otherwise. If an error occurred, then it will
-// be stored in _LastError.
+// requests. This function will return 0 if it succeeded, or an error code otherwise
 //    requests:   The array of trade requests that should be populated
-bool OrderReceiver::Receive(TradeRequest &requests[]) {
+int OrderReceiver::Receive(TradeRequest &requests[]) {
    do {
       ClientSocket *client = m_socket.Accept();
       if (client) {
@@ -108,10 +120,10 @@ bool OrderReceiver::Receive(TradeRequest &requests[]) {
          // Next, attempt to split the payload based on our expected payload structure; if this fails then
          // print an error message and return
          string payloads[];
-         uint errCode = SplitJSONPayload(result, payloads);
+         int errCode = SplitJSONPayload(result, payloads);
          if (errCode != 0) {
             PrintFormat("Failed to split response into JSON payloads, error code: %d", errCode);
-            return false;
+            return errCode;
          }
          
          // Finally, resize the list of requests so it is the same as the size of payloads and then iterate
@@ -123,7 +135,7 @@ bool OrderReceiver::Receive(TradeRequest &requests[]) {
             errCode = ConvertFromJSON(payloads[i], requests[i + numRequests]);
             if (errCode != 0) {
                PrintFormat("Failed to convert payload %d to JSON, error code: %d", i, errCode);
-               return false;
+               return errCode;
             }
          }
       } else {
@@ -133,7 +145,38 @@ bool OrderReceiver::Receive(TradeRequest &requests[]) {
       delete client;
       client = NULL;
    } while (true);
-   return true;
+   return 0;
+}
+
+// Send an update to the server, letting them know that we're still there. This function will return zero if
+// the no error occurs, or a non-zero error code otherwise
+int OrderReceiver::Heartbeat() {
+
+   // First, check if the current local time is less than the heartbeat window. If it
+   // is then we have nothing to do. Otherwise, we'll send the request
+   datetime now = TimeLocal();
+   if (m_last - now < HEARTBEAT_SECONDS) {
+      return 0;
+   }
+
+   // Next, create a new HTTP request and add the appropriate headers
+   HttpRequest req("GET", m_heartbeat_addr);
+   req.AddHeader("Accept", "application/json");
+   req.AddHeader("Authorization", m_auth_header);
+   
+   // Finally, send the HTTP request; if this fails or returns a non-200 response
+   // code then return an error; otherwise, return 0
+   HttpResponse resp;
+   int errCode = req.Send(resp);
+   if (errCode != 0) {
+      return errCode;
+   } else if (resp.StatusCode != 200) {
+      return resp.StatusCode;
+   }
+   
+   // Finally, update the last heartbeat time to now and return
+   m_last = now;
+   return 0;
 }
 
 // Helper function that updates the registry associated with this client
@@ -153,7 +196,7 @@ int OrderReceiver::UpdateRegistry(const bool enable) const {
    js = NULL;
    
    // Now, create a new HTTP request and add the appropriate headers
-   HttpRequest req("POST", m_addr, json);
+   HttpRequest req("POST", m_register_addr, json);
    req.AddHeader("Accept", "application/json");
    req.AddHeader("Authorization", m_auth_header);
    
@@ -175,7 +218,7 @@ int OrderReceiver::UpdateRegistry(const bool enable) const {
 // this function assumes the payload contains single-depth JSON.
 //    raw:        The raw data we received
 //    substrings: The list of strings that will contain our full payloads
-uint OrderReceiver::SplitJSONPayload(const string raw, string &substrings[]) {
+int OrderReceiver::SplitJSONPayload(const string raw, string &substrings[]) {
 
    // First, attempt to split the raw string by the opening bracket; if this fails then
    // retrieve the error code and return it. If the string was empty then return now. Otherwise,

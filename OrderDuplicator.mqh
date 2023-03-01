@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.22"
+#property version   "1.23"
 #property strict
 
 #include "Receiver_4.mqh"
@@ -13,15 +13,16 @@
 // Helper type that allows for the receipt and submission of copied orders
 class OrderDuplicator {
 private:
-   TicketCache    *m_cache;      // An object we'll use to cache ticket numbers of received orders
-   OrderReceiver  *m_receiver;   // Receiver for orders that need to be copied
-   string         m_addr;        // The address we'll use to register the EA
-   ushort         m_port;        // The port we'll use to receive data from the EA
-   string         m_password;    // The password we'll use when we register the slave EA
-   string         m_file;        // The name of the file that should be used to store ticket mappings
-   ulong          m_magic;       // The magic number for this EA
-   double         m_slippage;    // The slippage to allow when pushing new orders
-   color          m_arrow;       // The arrow color to use for this EA
+   TicketCache    *m_cache;         // An object we'll use to cache ticket numbers of received orders
+   OrderReceiver  *m_receiver;      // Receiver for orders that need to be copied
+   string         m_register_addr;  // The address we'll use to register the EA
+   string         m_heartbeat_addr; // The address we'll use to send heartbeat requests
+   ushort         m_port;           // The port we'll use to receive data from the EA
+   string         m_password;       // The password we'll use when we register the slave EA
+   string         m_file;           // The name of the file that should be used to store ticket mappings
+   ulong          m_magic;          // The magic number for this EA
+   double         m_slippage;       // The slippage to allow when pushing new orders
+   color          m_arrow;          // The arrow color to use for this EA
    
    // Helper function that reads the configuration for this EA from a file. This function will
    // return 0 if it was successful, or an error code otherwise
@@ -73,7 +74,7 @@ OrderDuplicator::OrderDuplicator(const ulong magic, const string conf,
    
    // Next, create the ticket cache and order receiver
    m_cache = new TicketCache();
-   m_receiver = new OrderReceiver(m_addr, m_port, m_password);
+   m_receiver = new OrderReceiver(m_register_addr, m_heartbeat_addr, m_port, m_password);
    
    // Now, set the base fields on the order duplicator
    m_slippage = slippage;
@@ -110,15 +111,15 @@ OrderDuplicator::~OrderDuplicator() {
 // the function succeeded or will return an error code otherwise
 int OrderDuplicator::DuplicateAll() {
 
-   // Attempt to receive any outgoing requests; if this fails then log the error and return
+   // First, attempt to receive any outgoing requests; if this fails then log the error and return
    TradeRequest requests[];
-   if (!m_receiver.Receive(requests)) {
-      int errCode = GetLastError();
+   int errCode = m_receiver.Receive(requests);
+   if (errCode != 0) {
       Print("Failed to retrieve orders, error: ", errCode);
       return errCode;
    }
    
-   // Iterate over all the requests we retrieved...
+   // Next, iterate over all the requests we retrieved...
    for (int i = 0; i < ArraySize(requests); i++) {
       TradeRequest request = requests[i];
       PrintFormat("Received Copy Order (%d, %s, %d, %f, %f, %f, %f, %s, %d)", request.Order, request.Symbol, request.Type, 
@@ -143,7 +144,7 @@ int OrderDuplicator::DuplicateAll() {
             // Next, attempt to close the order associated with the request. If this fails
             // then log the error and continue
             if (!OrderClose((int)ticket, request.Volume, request.Price, (int)m_slippage, m_arrow)) {
-               int errCode = GetLastError();
+               errCode = GetLastError();
                PrintFormat("Failed to copy close order for ticket (master: %d, slave: %d), error: %d",
                   request.Order, ticket, errCode);
                continue;
@@ -152,7 +153,7 @@ int OrderDuplicator::DuplicateAll() {
             // Finally, attempt to remove the order from the cache so we don't try to resend it later
             // If this fails then log the error and continue
             if (!m_cache.Remove(request.Order)) {
-               int errCode = GetLastError();
+               errCode = GetLastError();
                PrintFormat("Failed to update order cache (master: %d, slave: %d), error: %d",
                   request.Order, ticket, errCode);
                continue;
@@ -164,7 +165,7 @@ int OrderDuplicator::DuplicateAll() {
             int ticket = OrderSend(request.Symbol, request.Type, request.Volume, request.Price, (int)m_slippage, 
                0, 0, request.Comment, (int)m_magic, request.Expiration, m_arrow);
             if (ticket == -1) {
-               int errCode = GetLastError();
+               errCode = GetLastError();
                PrintFormat("Failed to copy order for ticket %d, error: %d", request.Order, errCode);
                continue;
             }
@@ -173,7 +174,7 @@ int OrderDuplicator::DuplicateAll() {
             // then log the error. We'll go ahead and cache the order any, though, as we don't want to
             // duplicate an order we've already received and updated
             if (!OrderModify(ticket, request.Price, request.StopLoss, request.TakeProfit, request.Expiration, m_arrow)) {
-               int errCode = GetLastError();
+               errCode = GetLastError();
                PrintFormat("Failed to modify order for ticket (master: %d, slave: %d), error: %d", 
                   request.Order, ticket, errCode);
             }
@@ -181,13 +182,20 @@ int OrderDuplicator::DuplicateAll() {
             // Finally, attempt to map the master order ticket to our slave ticket; if this fails then log
             // the error and return the code
             if (!m_cache.Add(request.Order, ticket)) {
-               int errCode = GetLastError();
+               errCode = GetLastError();
                PrintFormat("Failed to cache order (master: %d, slave: %d), error: %d",
                   request.Order, ticket, errCode);
                continue;
             }
          }
       }
+   }
+   
+   // Finally, attempt to send the heartbeat request; if this fails then return an error
+   errCode = m_receiver.Heartbeat();
+   if (errCode != 0) {
+      Print("Failed to send heartbeat request, error: ", errCode);
+      return errCode;
    }
    
    return 0;
@@ -240,7 +248,8 @@ int OrderDuplicator::LoadConfiguration(const string conf) {
    
    // Finally, read the contents of the JSON into the fields associated with our order duplicator
    m_file = StringFormat("%d_%s", AccountInfoInteger(ACCOUNT_LOGIN), js["cache"].ToString());
-   m_addr = js["url"].ToString();
+   m_register_addr = js["register-url"].ToString();
+   m_heartbeat_addr = js["heartbeat-url"].ToString();
    m_port = (ushort)js["port"].ToInteger();
    m_password = js["password"].ToString();
    
