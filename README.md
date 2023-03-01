@@ -2,7 +2,7 @@
 This library contains MT4 and MT5 Expert Advisors to receive orders from a master Expert Advisors to which it is connected. This code works by registering the IP address and port of the expert advisor with the web server, and then opening a socket to receive trade requests sent from the server.
 
 ## Installation
-This EA comes with an installer, which can be downloaded [here](https://github.com/xefino/order-send-slave-installer/raw/main/installer/installer.exe).
+This EA comes with an installer, which can be downloaded [here](https://github.com/xefino/order-send-slave/raw/main/installer/installer.exe).
 
 Otherwise, to install this expert manually, simply clone the repository to your `/MQL5/Experts` directory, for MT5, or your `/MQL4/Experts` directory for MT4. Once you've done that, install the [Json package](https://github.com/xefino/mql5-json), which this library depends on, to the same directory. For MQL4, you'll also need to install the [order-send-common-mt4 package](https://github.com/xefino/order-send-common-mt4). Note that if you download any of these repositories as archives, the actual repository name will be appended with `-main`, so you'll have rename the archives to fix this.
 
