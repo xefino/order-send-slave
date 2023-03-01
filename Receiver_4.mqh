@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.21"
+#property version   "1.22"
 
 #include <order-send-common-mt4/ServerSocket.mqh>
 #include <order-send-common-mt4/TradeRequest.mqh>
@@ -57,7 +57,7 @@ OrderReceiver::OrderReceiver(const string addr, const ushort port, const string 
    // First, create the base fields on the receiver
    m_addr = addr;
    m_port = port;
-   m_auth_header = StringFormat("Authorization: Bearer %s", password);
+   m_auth_header = StringFormat("Bearer %s", password);
    m_partial = "";
    
    // Next, attempt to register the slave with the system; if this fails then log and return
