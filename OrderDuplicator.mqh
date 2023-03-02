@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.23"
+#property version   "1.24"
 #property strict
 
 #include "Receiver_4.mqh"
@@ -172,12 +172,15 @@ int OrderDuplicator::DuplicateAll() {
             
             // Next, attempt to modify the order with stop-loss and take-profit levels; if this fails
             // then log the error. We'll go ahead and cache the order any, though, as we don't want to
-            // duplicate an order we've already received and updated
-            if (!OrderModify(ticket, request.Price, request.StopLoss, request.TakeProfit, request.Expiration, m_arrow)) {
-               errCode = GetLastError();
-               PrintFormat("Failed to modify order for ticket (master: %d, slave: %d), error: %d", 
-                  request.Order, ticket, errCode);
-            }
+            // duplicate an order we've already received and updated. We'll only do this if the stop-loss
+            // and take-profit aren't zero
+            if (request.StopLoss != 0 || request.TakeProfit != 0) {
+               if (!OrderModify(ticket, request.Price, request.StopLoss, request.TakeProfit, request.Expiration, m_arrow)) {
+                  errCode = GetLastError();
+                  PrintFormat("Failed to modify order for ticket (master: %d, slave: %d), error: %d", 
+                     request.Order, ticket, errCode);
+               }
+            }   
             
             // Finally, attempt to map the master order ticket to our slave ticket; if this fails then log
             // the error and return the code
