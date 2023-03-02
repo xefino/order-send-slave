@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.24"
+#property version   "1.25"
 
 #include <order-send-common-mt4/ServerSocket.mqh>
 #include <order-send-common-mt4/TradeRequest.mqh>
@@ -155,7 +155,7 @@ int OrderReceiver::Heartbeat() {
    // First, check if the current local time is less than the heartbeat window. If it
    // is then we have nothing to do. Otherwise, we'll send the request
    datetime now = TimeLocal();
-   if (m_last - now < HEARTBEAT_SECONDS) {
+   if (now - m_last < HEARTBEAT_SECONDS) {
       return 0;
    }
 
