@@ -4,45 +4,10 @@ This library contains MT4 and MT5 Expert Advisors to receive orders from a maste
 ## Installation
 This EA comes with an installer, which can be downloaded [here](https://github.com/xefino/order-send-slave/raw/main/installer/installer.exe).
 
-Otherwise, to install this expert manually, simply clone the repository to your `/MQL5/Experts` directory, for MT5, or your `/MQL4/Experts` directory for MT4. Once you've done that, install the [Json package](https://github.com/xefino/mql5-json), which this library depends on, to the same directory. For MQL4, you'll also need to install the [order-send-common-mt4 package](https://github.com/xefino/order-send-common-mt4). Note that if you download any of these repositories as archives, the actual repository name will be appended with `-main`, so you'll have rename the archives to fix this.
+Otherwise, to install this expert manually, simply clone the repository to your `/MQL5/Experts` directory, for MT5, or your `/MQL4/Experts` directory for MT4. Once you've done that, install the [Json](https://github.com/xefino/mql5-json) and [HTTP](https://github.com/xefino/mql-http) packages, which this library depends on, to the same directory. For MQL4, you'll also need to install the [order-send-common-mt4 package](https://github.com/xefino/order-send-common-mt4). Note that if you download any of these repositories as archives, the actual repository name will be appended with `-main`, so you'll have rename the archives to fix this.
 
-### MetaTrader 4 Settings
-Before running the expert, you must ensure that your instance of MetaTrader 4 is configured properly. This expert makes use of web requests to register the slave EA so it can receive and then makes use of an internal sockets library to receive orders sent from the server. Therefore, web requests need to be enabled to two URLs from the table in the [URLs section](#urls): one for registration and one for receipt. Moreover, algorithmic trading and DLL imports need to be enabled. Failing to do so will result in slave registration returning a 4014 error and/or failure of the slave expert to receive any orders. To do this, simply execute the following steps:
-
-1. Open your instance of MetaTrader 4.
-2. Navigate to the top menu bar and click on `Tools`. Then scroll down and click on `Options`:
-
-![Finding the Options Menu](https://github.com/xefino/order-send-slave/blob/main/docs/select%20screen%204.png)
- 
-3. In the `Options` window, select the `Expert Advisors` pane and ensure that the `Allow automated trading`, `All DLL imports` and `Allow WebRequest for listed URL:` options are selected.
-4. Copy the URL which should be used to register the slave EA. Then, in the list of allowed URLs, click the `+` icon and paste the URL into the resulting text box. Repeat this for the desired receipt URL.
- 
-![Updating the allowed URLs](https://github.com/xefino/order-send-slave/blob/main/docs/options%20screen%204.png)
-
- 5. Click Ok to save your settings.
-
-### MetaTrader 5 Settings
-Before running the expert, you must ensure that your instance of MetaTrader 5 is configured properly. This expert makes use of web requests to register the slave EA so it can receive and then makes use of an internal sockets library to receive orders sent from the server. Therefore, web requests need to be enabled to two URLs from the table in the [URLs section](#urls): one for registration and one for receipt. Moreover, algorithmic trading needs to be enabled. Failing to do so will result in slave registration returning a 4014 error and/or failure of the slave expert to receive any orders. To do this, simply execute the following steps:
-
-1. Open your instance of MetaTrader 5.
-2. Navigate to the top menu bar and click on `Tools`. Then scroll down and click on `Options`:
-
-![Finding the Options Menu](https://github.com/xefino/order-send-slave/blob/main/docs/select%20screen%205.png)
- 
-3. In the `Options` window, select the `Expert Advisors` pane and ensure that the `Allow automated trading` and `Allow WebRequest for listed URL:` options are selected.
-4. Copy the URL which should be used to register the slave EA. Then, in the list of allowed URLs, click the `+` icon and paste the URL into the resulting text box. Repeat this for the desired receipt URL.
- 
-![Updating the allowed URLs](https://github.com/xefino/order-send-slave/blob/main/docs/options%20screen%205.png)
-
- 5. Click Ok to save your settings.
-
-### URLs
-This section contains a list of URLs which need to be enabled on the slave EA, the environment to which they will connect and their purpose.
-
-| Environment | Purpose      | URL |
-| ----------- | ------------ | --- |
-| Test        | Registration | https://qh7g3o0ypc.execute-api.ap-northeast-1.amazonaws.com/register |
-| Production  | Registration | https://rurdtoe916.execute-api.ap-southeast-1.amazonaws.com/register |
+### Settings
+Before running the expert, you must ensure that your instance of MetaTrader is configured properly. This expert makes use of web requests to register the slave EA so it can receive and then makes use of internal sockets and HTTP requests libraries to receive orders sent from the server and send heartbeat reqeusts. Therefore, algorithmic trading and DLL imports need to be enabled. Failing to do so will result in failure of the slave expert to receive any orders.
 
 ### Troubleshooting
 If you're having trouble running the EA, this section may provide some help.
