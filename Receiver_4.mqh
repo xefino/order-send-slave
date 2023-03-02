@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.25"
+#property version   "1.26"
 
 #include <order-send-common-mt4/ServerSocket.mqh>
 #include <order-send-common-mt4/TradeRequest.mqh>
@@ -65,7 +65,7 @@ OrderReceiver::OrderReceiver(const string registerAddr, const string heartbeatAd
    
    // First, create the base fields on the receiver
    m_register_addr = registerAddr;
-   m_heartbeat_addr = StringFormat(heartbeatAddr, AccountInfoInteger(ACCOUNT_LOGIN), "MT4");
+   m_heartbeat_addr = StringFormat(heartbeatAddr, AccountInfoInteger(ACCOUNT_LOGIN), "v4");
    m_port = port;
    m_auth_header = StringFormat("Bearer %s", password);
    m_partial = "";
