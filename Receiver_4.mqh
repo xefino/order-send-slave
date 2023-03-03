@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.26"
+#property version   "1.27"
 
 #include <order-send-common-mt4/ServerSocket.mqh>
 #include <order-send-common-mt4/TradeRequest.mqh>

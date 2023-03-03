@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.26"
+#property version   "1.27"
 #property strict
 
 #include "Receiver_4.mqh"
@@ -140,10 +140,21 @@ int OrderDuplicator::DuplicateAll() {
                PrintFormat("Failed to retrieve ticket number for closed order %d", request.Order);
                continue;
             }
+            
+            // Attempt to select the order ; if this fails then log an error and continue
+            if (!OrderSelect((int)ticket, SELECT_BY_TICKET)) {
+               PrintFormat("Failed to select order associated with ticket number %s, error: %d", ticket, GetLastError());
+               continue;
+            }
+            
+            // Next, get the volume from the original order rather than taking the order volume from the master.
+            // Since we're closing the order, we want to use the original order volume. Also, normalize the price
+            double volume = OrderLots();
+            double price = NormalizePrice(request.Price, request.Symbol);
          
-            // Next, attempt to close the order associated with the request. If this fails
+            // Now, attempt to close the order associated with the request. If this fails
             // then log the error and continue
-            if (!OrderClose((int)ticket, request.Volume, request.Price, (int)m_slippage, m_arrow)) {
+            if (!OrderClose((int)ticket, volume, price, (int)m_slippage, m_arrow)) {
                errCode = GetLastError();
                PrintFormat("Failed to copy close order for ticket (master: %d, slave: %d), error: %d",
                   request.Order, ticket, errCode);
@@ -159,10 +170,14 @@ int OrderDuplicator::DuplicateAll() {
                continue;
             }
          } else {
+         
+            // First, calculate the volume so that it is proportional to the master's volume and then normalize the price
+            double volume = NormalizeLots(request.Volume * AccountBalance() / request.TradeBalance, request.Symbol);
+            double price = NormalizePrice(request.Price, request.Symbol);
             
-            // First, attempt to send the order we received to the trade server; if this fails then
+            // Next, attempt to send the order we received to the trade server; if this fails then
             // log the error and return the code
-            int ticket = OrderSend(request.Symbol, request.Type, request.Volume, request.Price, (int)m_slippage, 
+            int ticket = OrderSend(request.Symbol, request.Type, volume, price, (int)m_slippage, 
                0, 0, request.Comment, (int)m_magic, request.Expiration, m_arrow);
             if (ticket == -1) {
                errCode = GetLastError();
@@ -170,7 +185,7 @@ int OrderDuplicator::DuplicateAll() {
                continue;
             }
             
-            // Next, attempt to modify the order with stop-loss and take-profit levels; if this fails
+            // Now, attempt to modify the order with stop-loss and take-profit levels; if this fails
             // then log the error. We'll go ahead and cache the order any, though, as we don't want to
             // duplicate an order we've already received and updated. We'll only do this if the stop-loss
             // and take-profit aren't zero
@@ -359,4 +374,46 @@ int OrderDuplicator::WriteTickets() const {
    FileClose(handle);
    return 0;
 }
+
+// Helper function that normalizes the price
+double NormalizePrice(const double price, string symbol = "") {
+
+   // First, if we received no symbol then get the current market symbol
+   if (symbol == "") {
+     symbol = Symbol();
+   }
    
+   // Next, get the tick-size associated with the symbol
+   double tickSize = MarketInfo(symbol, MODE_TICKSIZE);
+   
+   // Finally, normalize the price to the tick size
+   return MathRound(price / tickSize) * tickSize;
+}
+
+// Helper function that normalizes the lot size
+double NormalizeLots(double lots, string symbol = ""){
+   
+   // First, if we received no symbol then get the current market symbol
+   if (symbol == "") {
+     symbol = Symbol();
+   }
+   
+   // Next, get the lot-step, lot minimum and lot maximum
+   double step   = MarketInfo(symbol, MODE_LOTSTEP),
+          maxLot = MarketInfo(symbol, MODE_MAXLOT),
+          minLot = MarketInfo(symbol, MODE_MINLOT);
+   
+   // Now, normalize the lot size based on the lot step 
+   lots = MathRound(lots / step) * step;
+   
+   // Finally, if the lot size is less than the minimum then return the minimum.
+   // If the lot size is greater than the maximum then return the maximum. Otherwise,
+   // return the lot size we calculated
+   if (lots < minLot) {
+      return minLot;
+   } else if (lots > maxLot) {
+      return maxLot;
+   } else {
+      return lots;
+   }
+}   
