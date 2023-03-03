@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.27"
+#property version   "1.28"
 #property strict
 
 #include "Receiver_4.mqh"

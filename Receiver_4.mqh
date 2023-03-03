@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.27"
+#property version   "1.28"
 
 #include <order-send-common-mt4/ServerSocket.mqh>
 #include <order-send-common-mt4/TradeRequest.mqh>
@@ -287,6 +287,7 @@ int ConvertFromJSON(const string json, TradeRequest &request) {
    
    // Next, extract the values of the various fields from the JSON payload
    request.Action = (ENUM_TRADE_REQUEST_ACTIONS)js["action"].ToInteger();
+   request.TradeBalance = js["balance"].ToDouble();
    request.Comment = js["comment"].ToString();
    request.Expiration = (datetime)js["expiration"].ToInteger();
    request.Magic = js["magic"].ToInteger();
