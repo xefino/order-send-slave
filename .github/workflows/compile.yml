@@ -11,19 +11,9 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - name: Create Log File
-        run: |
-          type nul > results.log
-        shell: cmd
       - uses: fx31337/mql-compile-action@master
         with:
           path: 'Slave_4.mq4'
           include: '.'
-          log-file: '${{ github.workspace }}/results.log'
           ignore-warnings: false
-          debug: true
           verbose: true
-      - name: Show Log File
-        run: |
-          more results.log
-        shell: cmd
