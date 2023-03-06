@@ -19,6 +19,6 @@ jobs:
         with:
           include: .
           mt-version: 4.0.0.1320
-          path: ./*.mq4
+          path: .\Slave_4.mq4
           init-platform: true
           verbose: true
