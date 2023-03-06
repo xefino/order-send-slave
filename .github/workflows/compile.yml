@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: Create Log File
         run: |
-          type nul > results.log
+          touch results.log
       - uses: fx31337/mql-compile-action@master
         with:
           path: 'Slave_4.mq4'
@@ -23,4 +23,4 @@ jobs:
           verbose: true
       - name: Show Log File
         run: |
-          more results.log
+          cat results.log
