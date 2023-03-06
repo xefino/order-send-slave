@@ -20,6 +20,7 @@ jobs:
           path: 'Slave_4.mq4'
           include: '.'
           log-file: .\results.log
+          init-platform: true
           ignore-warnings: false
           verbose: true
       - name: Print Log File
