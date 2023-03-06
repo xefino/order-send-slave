@@ -9,20 +9,16 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: powershell
+    runs-on: windows-latest
     steps:
-      - name: Create Log File
-        run: |
-          touch .\results.log
-      - uses: fx31337/mql-compile-action@master
+      - name: Compile (build 2361)
+        uses: fx31337/mql-compile-action@master
         with:
+          include: .
           mt-version: 4.0.0.1320
-          path: 'Slave_4.mq4'
-          include: '.'
-          log-file: .\results.log
+          path: ./*.mq4
           init-platform: true
-          ignore-warnings: false
           verbose: true
-      - name: Print Log File
-        run: |
-          cat .\results.log
