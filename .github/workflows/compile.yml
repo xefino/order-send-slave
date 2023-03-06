@@ -14,6 +14,7 @@ jobs:
       - name: Create Log File
         run: |
           type nul > results.log
+          ls
         shell: cmd
       - uses: fx31337/mql-compile-action@master
         with:
