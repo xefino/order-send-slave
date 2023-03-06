@@ -21,6 +21,7 @@ jobs:
           include: '.'
           log-file: '${{ github.workspace }}/results.log'
           ignore-warnings: false
+          debug: true
           verbose: true
       - name: Show Log File
         run: |
