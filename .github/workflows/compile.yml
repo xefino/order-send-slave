@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: fx31337/mql-compile-action@master
         with:
-          mt-version: 4.0.0.1359
+          mt-version: 4.0.0.1320
           path: 'Slave_4.mq4'
           include: '.'
           ignore-warnings: false
