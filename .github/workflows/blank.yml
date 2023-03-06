@@ -1,0 +1,20 @@
+name: Compile
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: fx31337/mql-compile-action@master
+        with:
+          path: 'Slave_4.mq4'
+          include: '.'
+          log-file: 'results.log'
+          ignore-warnings: false
+          verbose: true
