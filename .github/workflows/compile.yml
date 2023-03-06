@@ -19,7 +19,7 @@ jobs:
         with:
           path: 'Slave_4.mq4'
           include: '.'
-          log-file: '%cd%/results.log'
+          log-file: '${{ github.workspace }}/results.log'
           ignore-warnings: false
           verbose: true
       - name: Show Log File
