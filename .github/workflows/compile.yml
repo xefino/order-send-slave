@@ -14,11 +14,11 @@ jobs:
         shell: powershell
     runs-on: windows-latest
     steps:
-      - name: Compile (build 2361)
+      - name: Compile
         uses: fx31337/mql-compile-action@master
         with:
           include: .
-          mt-version: 4.0.0.1320
-          path: .\Slave_4.mq4
+          mt-version: 4.0.0.1370
+          path: '.\Slave_4.mq4'
           init-platform: true
           verbose: true
