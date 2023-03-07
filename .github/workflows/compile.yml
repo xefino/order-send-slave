@@ -20,7 +20,6 @@ jobs:
           include: .
           mt-version: 4.0.0.1320
           path: '.\Slave_4.mq4'
-          init-platform: true
           verbose: true
       - name: Check directory
         if: always()
