@@ -17,7 +17,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Compile
-      uses: xefino/mql4-compiler@v0.4.5
+      uses: xefino/mql4-compiler@v0.4.6
       with:
         version: 1370
         path: .\Slave_4.mq4
