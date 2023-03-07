@@ -15,11 +15,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Compile
-        uses: fx31337/mql-compile-action@master
+        uses: xefino/mql4-compiler@v0.0.0
         with:
-          include: .
-          mt-version: 4.0.0.1320
-          path: '.\Slave_4.mq4'
+          version: 1370
+          path: .\Slave_4.mq4
           verbose: true
       - name: Check directory
         if: always()
