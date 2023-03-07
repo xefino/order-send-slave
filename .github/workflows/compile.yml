@@ -17,9 +17,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Compile
-      uses: xefino/mql4-compiler@v0.5.3
+      uses: fx31337/mql-compile-action@v1
       with:
-        version: 1370
         path: .\Slave_4.mq4
         verbose: true
     - name: Check directory
