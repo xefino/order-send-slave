@@ -14,6 +14,8 @@ jobs:
         shell: powershell
     runs-on: windows-latest
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Compile
       uses: xefino/mql4-compiler@v0.4.1
       with:
