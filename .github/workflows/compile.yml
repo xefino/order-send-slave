@@ -34,8 +34,6 @@ jobs:
         git add *.ex4
         if (git diff-index --quiet HEAD) {
           git commit -m "${{ github.event.head_commit.message }}"
-        } else {
-          ::exit::neutral
         }
     - name: Push Compiled Files
       uses: ad-m/github-push-action@master
