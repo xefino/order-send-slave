@@ -22,3 +22,7 @@ jobs:
           path: '.\Slave_4.mq4'
           init-platform: true
           verbose: true
+      - name: Check directory
+        if: always()
+        run: |
+          Get-ChildItem -Force
