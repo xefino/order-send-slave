@@ -15,7 +15,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Compile
-      uses: xefino/mql4-compiler@v0.3.0
+      uses: xefino/mql4-compiler@v0.4.0
       with:
         version: 1370
         path: .\Slave_4.mq4
