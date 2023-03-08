@@ -41,7 +41,9 @@ jobs:
             $SourceDirLength = $SourceDir.Length
             $TotalLength = $_.FullName.Length
             $RelativePath = $_.FullName.Substring($SourceDirLength, $TotalLength - $SourceDirLength)
+            echo $RelativePath
             $TargetPath = Join-Path -Path $TargetDir -ChildPath $RelativePath
+            echo $TargetPath
             Copy-Item -Path $_.FullName -Destination $TargetPath -Recurse -WhatIf
           }
     - name: Compile
