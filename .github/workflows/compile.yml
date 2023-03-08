@@ -14,25 +14,25 @@ jobs:
         shell: powershell
     runs-on: windows-latest
     steps:
-    - name: Get AppData Directory
-      run: echo ("APPDATA_DIR=" + $env:APPDATA) >> $env:GITHUB_ENV
     - name: Checkout
       uses: actions/checkout@v2
     - name: Checkout mql-http
       uses: actions/checkout@v2
       with:
         repository: xefino/mql-http
-        path: ${{ env.APPDATA_DIR }}\MetaQuotes\Terminal\B4A57AAB059458B669EF812D12D27772\MQL5\Include
+        path: ./Include
     - name: Checkout mql5-json
       uses: actions/checkout@v2
       with:
         repository: xefino/mql5-json
-        path: ${{ env.APPDATA_DIR }}\MetaQuotes\Terminal\B4A57AAB059458B669EF812D12D27772\MQL5\Include
+        path: ./Include
     - name: Checkout order-send-common-mt4
       uses: actions/checkout@v2
       with:
         repository: xefino/order-send-common-mt4
-        path: ${{ env.APPDATA_DIR }}\MetaQuotes\Terminal\B4A57AAB059458B669EF812D12D27772\MQL5\Include
+        path: ./Include
+    - name: Move Include to AppData Directory
+      run: Move-Item -Path ./Include -Destination ("{0}\MetaQuotes\Terminal\B4A57AAB059458B669EF812D12D27772\MQL5" -f $env:APPDATA)
     - name: Compile
       uses: fx31337/mql-compile-action@v1
       with:
