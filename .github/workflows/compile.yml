@@ -32,7 +32,7 @@ jobs:
         repository: xefino/order-send-common-mt4
         path: ./Include
     - name: Move Include to AppData Directory
-      run: Move-Item -Path ./Include -Destination ("{0}\MetaQuotes\Terminal\B4A57AAB059458B669EF812D12D27772\MQL5" -f $env:APPDATA)
+      run: Get-ChildItem -Path ".\*.mqh" -Recurse | Move-Item -Destination ("{0}:\TextFiles" -f $env:APPDATA)
     - name: Compile
       uses: fx31337/mql-compile-action@v1
       with:
