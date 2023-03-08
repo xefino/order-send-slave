@@ -33,9 +33,17 @@ jobs:
         path: ./Include/order-send-common-mt4
     - name: Move Include to AppData Directory
       run: |
-        $destination = "{0}\MetaQuotes\Terminal\B4A57AAB059458B669EF812D12D27772\MQL5\Include" -f $env:APPDATA
-        echo $destination
-        Get-ChildItem -Path ".\Include\*.mqh" -Recurse | Move-Item -WhatIf -Destination $destination
+        $SourceDir = Resolve-Path -Path ".\Include"
+        $TargetDir = "{0}\MetaQuotes\Terminal\B4A57AAB059458B669EF812D12D27772\MQL5\Include" -f $env:APPDATA
+        Get-ChildItem -Path $SourceDir -Directory -Recurse |
+          Where-Object -Property FullName -Match -Value ".*\.mqh" |
+          ForEach-Object {
+            $SourceDirLength = $SourceDir.Length
+            $TotalLength = $_.FullName.Length
+            $RelativePath = $_.FullName.Substring($SourceDirLength, $TotalLength - $SourceDirLength)
+            $TargetPath = Join-Path -Path $TargetDir -ChildPath $RelativePath
+            Copy-Item -Path $_.FullName -Destination $TargetPath -Recurse 
+          }
     - name: Compile
       uses: fx31337/mql-compile-action@v1
       with:
