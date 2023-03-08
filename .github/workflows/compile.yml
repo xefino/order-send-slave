@@ -20,17 +20,17 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: xefino/mql-http
-        path: ./Include
+        path: ./Include/mql-http
     - name: Checkout mql5-json
       uses: actions/checkout@v2
       with:
         repository: xefino/mql5-json
-        path: ./Include
+        path: ./Include/mql5-json
     - name: Checkout order-send-common-mt4
       uses: actions/checkout@v2
       with:
         repository: xefino/order-send-common-mt4
-        path: ./Include
+        path: ./Include/order-send-common-mt4
     - name: Move Include to AppData Directory
       run: |
         $destination = "{0}\MetaQuotes\Terminal\B4A57AAB059458B669EF812D12D27772\MQL5\Include" -f $env:APPDATA
