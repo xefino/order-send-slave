@@ -60,7 +60,7 @@ jobs:
         git config --global user.name "$(git log -n 1 --pretty=format:%an)"
         git add *.ex4
         echo "Added"
-        if (git diff-index --quiet HEAD) {
+        if ((git diff-index --quiet HEAD) -eq $null) {
           git commit -m "${{ github.event.head_commit.message }}"
           echo "Commited"
         }
