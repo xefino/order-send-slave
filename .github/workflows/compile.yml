@@ -62,6 +62,7 @@ jobs:
         echo "Added"
         if (git diff-index --quiet HEAD) {
           git commit -m "${{ github.event.head_commit.message }}"
+          echo "Commited"
         }
     - name: Push Compiled Files
       uses: ad-m/github-push-action@master
