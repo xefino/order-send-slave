@@ -39,6 +39,7 @@ jobs:
         Get-ChildItem -Path $SourceDir -Directory |
           ForEach-Object {
             $SourceDirLength = $SourceDir.Length
+            echo $_.FullName
             $TotalLength = $_.FullName.Length
             $RelativePath = $_.FullName.Substring($SourceDirLength, $TotalLength - $SourceDirLength)
             echo $RelativePath
