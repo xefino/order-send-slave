@@ -42,7 +42,7 @@ jobs:
             $TotalLength = $_.FullName.Length
             $RelativePath = $_.FullName.Substring($SourceDirLength, $TotalLength - $SourceDirLength)
             $TargetPath = Join-Path -Path $TargetDir -ChildPath $RelativePath
-            Copy-Item -Path $_.FullName -Destination $TargetPath -Recurse 
+            Copy-Item -Path $_.FullName -Destination $TargetPath -Recurse -WhatIf
           }
     - name: Compile
       uses: fx31337/mql-compile-action@v1
