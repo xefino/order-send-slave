@@ -58,7 +58,7 @@ jobs:
         git --version
         git config --global user.email "$(git log -n 1 --pretty=format:%ae)"
         git config --global user.name "$(git log -n 1 --pretty=format:%an)"
-        git add ':/*.ex4'
+        git add *.ex4
         if (git diff-index --quiet HEAD) {
           git commit -m "${{ github.event.head_commit.message }}"
         }
