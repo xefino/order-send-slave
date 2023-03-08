@@ -43,7 +43,7 @@ jobs:
         git config --global user.email "$(git log -n 1 --pretty=format:%ae)"
         git config --global user.name "$(git log -n 1 --pretty=format:%an)"
         git add *.ex4
-        git diff-index --quiet HEAD; if ($LASTEXITCODE -eq 0) { git commit -m "${{ github.event.head_commit.message }}" }
+        if (diff-index HEAD) { git commit -m "${{ github.event.head_commit.message }}" }
     - name: Push Compiled Files
       uses: ad-m/github-push-action@master
       with:
