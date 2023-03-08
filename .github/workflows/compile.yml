@@ -35,7 +35,7 @@ jobs:
       uses: fx31337/mql-compile-action@master
       with:
         path: '.\Slave_4.mq4'
-        include: '.\Include' 
+        include: '.' 
         verbose: true
     - name: Commit Compiled Files
       run: |
