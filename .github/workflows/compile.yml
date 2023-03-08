@@ -33,7 +33,7 @@ jobs:
         path: ./Include/order-send-common-mt4
     - name: Move Include to AppData Directory
       run: |
-        $SourceDir = Resolve-Path -Path ".\Include"
+        $SourceDir = (Resolve-Path -Path ".\Include")[0]
         echo $SourceDir
         $TargetDir = "{0}\MetaQuotes\Terminal\B4A57AAB059458B669EF812D12D27772\MQL5\Include" -f $env:APPDATA
         Get-ChildItem -Path $SourceDir -Directory |
