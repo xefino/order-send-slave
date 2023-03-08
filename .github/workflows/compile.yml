@@ -34,7 +34,6 @@ jobs:
     - name: Move Include to AppData Directory
       run: |
         $SourceDir = (Resolve-Path -Path ".\Include")[0].ToString()
-        echo "Source: $($SourceDir), Type: $($SourceDir.GetType())"
         $TargetDir = "{0}\MetaQuotes\Terminal\B4A57AAB059458B669EF812D12D27772\MQL5\Include" -f $env:APPDATA
         Get-ChildItem -Path $SourceDir -Directory |
           ForEach-Object {
@@ -43,7 +42,7 @@ jobs:
             $RelativePath = $_.FullName.Substring($SourceDirLength, $TotalLength - $SourceDirLength)
             $TargetPath = Join-Path -Path $TargetDir -ChildPath $RelativePath
             echo "Source Directory Length: $($SourceDirLength), Total Length: $($TotalLength), Relative Path: $($RelativePath), Target Path: $($TargetPath)"
-            Copy-Item -Path $_.FullName -Destination $TargetPath -Recurse -WhatIf
+            Copy-Item -Path $_.FullName -Destination $TargetPath -Recurse
           }
     - name: Compile
       uses: fx31337/mql-compile-action@v1
