@@ -34,7 +34,10 @@ jobs:
     - name: Move Include to AppData Directory
       run: |
         $SourceDir = Resolve-Path -Path ".\Include"
+        echo $SourceDir
         $TargetDir = "{0}\MetaQuotes\Terminal\B4A57AAB059458B669EF812D12D27772\MQL5\Include" -f $env:APPDATA
+        $echo $TargetDir
+        Get-ChildItem -Path $SourceDir -Directory -Recurse | Where-Object -Property FullName -Match -Value ".*\.mqh"
         Get-ChildItem -Path $SourceDir -Directory -Recurse |
           Where-Object -Property FullName -Match -Value ".*\.mqh" |
           ForEach-Object {
