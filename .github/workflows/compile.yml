@@ -32,8 +32,9 @@ jobs:
         repository: xefino/order-send-common-mt4
         path: .\Include
     - name: Compile
-      uses: fx31337/mql-compile-action@v1
+      uses: xefino/mql4-compiler@v0.6.0
       with:
+        version: 5.0.0.2361
         path: .\Slave_4.mq4
         include: .\Include 
         verbose: true
