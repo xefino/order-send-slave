@@ -1,10 +1,8 @@
 name: Compile
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  release:
+    types: [released]
   workflow_dispatch:
 
 jobs:
@@ -43,7 +41,7 @@ jobs:
         git config --global user.email "$(git log -n 1 --pretty=format:%ae)"
         git config --global user.name "$(git log -n 1 --pretty=format:%an)"
         git add *.ex4
-        if (git diff-index HEAD) { git commit -m "${{ github.event.head_commit.message }}" }
+        if (git diff-index HEAD) { git commit -m "${{ github.ref_name }} Release" }
     - name: Push Compiled Files
       uses: ad-m/github-push-action@master
       with:
