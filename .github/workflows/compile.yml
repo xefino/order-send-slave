@@ -1,0 +1,49 @@
+name: Compile
+
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+
+jobs:
+  build:
+    defaults:
+      run:
+        shell: powershell
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Checkout mql-http
+      uses: actions/checkout@v2
+      with:
+        repository: xefino/mql-http
+        path: ./Include/mql-http
+    - name: Checkout mql5-json
+      uses: actions/checkout@v2
+      with:
+        repository: xefino/mql5-json
+        path: ./Include/mql5-json
+    - name: Checkout order-send-common-mt4
+      uses: actions/checkout@v2
+      with:
+        repository: xefino/order-send-common-mt4
+        path: ./Include/order-send-common-mt4
+    - name: Compile
+      uses: fx31337/mql-compile-action@master
+      with:
+        path: '.\Slave_4.mq4'
+        include: '.' 
+        verbose: true
+    - name: Commit Compiled Files
+      run: |
+        git --version
+        git config --global user.email "$(git log -n 1 --pretty=format:%ae)"
+        git config --global user.name "$(git log -n 1 --pretty=format:%an)"
+        git add *.ex4
+        if (git diff-index HEAD) { git commit -m "${{ github.ref_name }} Release" }
+    - name: Push Compiled Files
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: 'main'
