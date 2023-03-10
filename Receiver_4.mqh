@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.28"
+#property version   "1.29"
 
 #include <order-send-common-mt4/ServerSocket.mqh>
 #include <order-send-common-mt4/TradeRequest.mqh>
@@ -15,6 +15,7 @@
 class OrderReceiver {
 private:
    ServerSocket   *m_socket;        // The index of the socket we'll use to retrieve updates
+   string         m_master;         // The ID of the master this slave should connect to
    string         m_register_addr;  // The endpoint of the server we'll use to register the slave
    string         m_heartbeat_addr; // The endpoint of the server we'll send heartbeat requests to
    string         m_auth_header;    // The Authorization header to send with the request
@@ -37,10 +38,13 @@ public:
 
    // Creates a new order receiver object with the web address of the webserver from which we want to retrieve
    // trade requests and the port on which we should expect to receive such requests
+   //    master:        The ID of the master this slave should connect to
    //    registerAddr:  The URL which will be used to register the slave
    //    heartbeatAddr: The URL format which will be used to send heartbeat requests
    //    port:          The port that should be opened to allow retrieval of trade requests (should not be port 80 or 443)
-   OrderReceiver(const string registerAddr, const string heartbeatAddr, const ushort port, const string password);
+   //    password:      The password that should be used to authenticate requests made against the server
+   OrderReceiver(const string master, const string registerAddr, const string heartbeatAddr, 
+      const ushort port, const string password);
    
    // Destroys this instance of the order receiver by deregistering the slave with the webserver and closing the
    // associated socket connection
@@ -58,12 +62,16 @@ public:
 
 // Creates a new order receiver object with the web address of the webserver from which we want to retrieve
 // trade requests and the port on which we should expect to receive such requests
+//    master:        The ID of the master this slave should connect to
 //    registerAddr:  The URL which will be used to register the slave
 //    heartbeatAddr: The URL format which will be used to send heartbeat requests
 //    port:          The port that should be opened to allow retrieval of trade requests (should not be port 80 or 443)
-OrderReceiver::OrderReceiver(const string registerAddr, const string heartbeatAddr, const ushort port, const string password) {
+//    password:      The password that should be used to authenticate requests made against the server
+OrderReceiver::OrderReceiver(const string master, const string registerAddr, const string heartbeatAddr, 
+   const ushort port, const string password) {
    
    // First, create the base fields on the receiver
+   m_master = master;
    m_register_addr = registerAddr;
    m_heartbeat_addr = StringFormat(heartbeatAddr, AccountInfoInteger(ACCOUNT_LOGIN), "v4");
    m_port = port;
@@ -185,22 +193,23 @@ int OrderReceiver::UpdateRegistry(const bool enable) const {
 
    // First, convert the trade request to JSON and write that to our buffer
    JSONNode *js = new JSONNode();
+   js["master"] = m_master;
    js["account"] = IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN));
    js["enabled"] = enable;
    js["port"] = (int)m_port;
    js["version"] = "MT4";
    
-   // Next, serialize it into a string, then delete the serializer
+   // Serialize it into a string, then delete the serializer
    string json = js.Serialize();
    delete js;
    js = NULL;
    
-   // Now, create a new HTTP request and add the appropriate headers
+   // Next, create a new HTTP request and add the appropriate headers
    HttpRequest req("POST", m_register_addr, json);
    req.AddHeader("Accept", "application/json");
    req.AddHeader("Authorization", m_auth_header);
    
-   // Finally, post the HTTP request; if this fails or returns a non-200 response
+   // Now, post the HTTP request; if this fails or returns a non-200 response
    // code then return an error; otherwise, return 0
    HttpResponse resp;
    int errCode = req.Send(resp);

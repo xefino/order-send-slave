@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.28"
+#property version   "1.29"
 
 #include <mql-http/Request.mqh>
 #include <mql5-json/Json.mqh>
