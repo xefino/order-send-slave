@@ -5,6 +5,7 @@
 
 // Inputs
 input string ConfigFile = "oss_config.json";             // Configuration File
+input string Master = "";                                // Master ID
 input ulong Magic = 0;                                   // Magic Number
 input color Arrow = CLR_NONE;                            // Arrow Color
 input ulong Slippage = 5;                                // Slippage (Pts)
@@ -12,7 +13,7 @@ input ulong Slippage = 5;                                // Slippage (Pts)
 OrderDuplicator *Receiver;
 
 int OnInit() {
-   Receiver = new OrderDuplicator(Magic, ConfigFile, Slippage, Arrow);
+   Receiver = new OrderDuplicator(Magic, Master, ConfigFile, Slippage, Arrow);
    int errCode = GetLastError();
    if (errCode != 0) {
       return errCode;

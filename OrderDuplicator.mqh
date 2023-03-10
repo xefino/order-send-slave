@@ -42,10 +42,11 @@ public:
    // Creates a new instance of the order duplicator from our address, port, magic number, save file name,
    // slippage and chart color. This function will attempt to read the contents of the save file if it exists
    //    magic:      The magic number to use for the duplicator
+   //    master:     The master from which this slave should duplicate orders
    //    conf:       The configuration file to use when running this EA
    //    slippage:   The slippage that should be applied to received orders
    //    arrow:      The color of the arrow that should be written to chart
-   OrderDuplicator(const ulong magic, const string conf, const double slippage, const color arrow = CLR_NONE);
+   OrderDuplicator(const ulong magic, const string master, const string conf, const double slippage, const color arrow = CLR_NONE);
    
    // Destructor that releases the resources assorted with this duplicator. This function also attempts to
    // write the cached data to the save file so it can be reloaded next time
@@ -59,10 +60,11 @@ public:
 // Creates a new instance of the order duplicator from our address, port, magic number, save file name,
 // slippage and chart color. This function will attempt to read the contents of the save file if it exists
 //    magic:      The magic number to use for the duplicator
+//    master:     The master from which this slave should duplicate orders
 //    conf:       The configuration file to use when running this EA
 //    slippage:   The slippage that should be applied to received orders
 //    arrow:      The color of the arrow that should be written to chart
-OrderDuplicator::OrderDuplicator(const ulong magic, const string conf, 
+OrderDuplicator::OrderDuplicator(const ulong magic, const string master, const string conf, 
    const double slippage, const color arrow = CLR_NONE) {
    
    // First, attempt to read the configuration file; if this fails then return here
@@ -74,7 +76,7 @@ OrderDuplicator::OrderDuplicator(const ulong magic, const string conf,
    
    // Next, create the ticket cache and order receiver
    m_cache = new TicketCache();
-   m_receiver = new OrderReceiver(m_register_addr, m_heartbeat_addr, m_port, m_password);
+   m_receiver = new OrderReceiver(master, m_register_addr, m_heartbeat_addr, m_port, m_password);
    
    // Now, set the base fields on the order duplicator
    m_slippage = slippage;
