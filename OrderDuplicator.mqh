@@ -1,5 +1,5 @@
 #property copyright "Xefino"
-#property version   "1.29"
+#property version   "1.30"
 #property strict
 
 #include "Receiver_4.mqh"
@@ -77,6 +77,11 @@ OrderDuplicator::OrderDuplicator(const ulong magic, const string master, const s
    // Next, create the ticket cache and order receiver
    m_cache = new TicketCache();
    m_receiver = new OrderReceiver(master, m_register_addr, m_heartbeat_addr, m_port, m_password);
+   errCode = GetLastError();
+   if (errCode != 0) {
+      SetUserError((ushort)errCode);
+      return;
+   }
    
    // Now, set the base fields on the order duplicator
    m_slippage = slippage;
